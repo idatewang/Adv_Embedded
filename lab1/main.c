@@ -15,9 +15,9 @@
 #include "dm.c"
 #include "pm.c"
 
-#define MAP_SIZE 4096UL
+#define MAP_SIZE 8192UL
 #define MAP_MASK (MAP_SIZE - 1)
-
+#define uint32_t unsigned int
 int ps_range[] = {45, 75, 30, 52, 25};
 
 int pl_range[] = {5, 6, 8, 10, 15};
@@ -62,7 +62,7 @@ void clk_rng() {
     // deassert reset
     pm(0xfd1a0020, APLL_CTRL + 8);
     // while check for lock
-    while (dm(0xfd1a0044) != 0x1) {
+    while ((dm(0xfd1a0044) & 1) != 0x1) {
         sleep(1);
         printf("Waiting check for lock\n");
     }
@@ -80,7 +80,7 @@ void clk_rng() {
                              PROT_READ | PROT_WRITE,
                              MAP_SHARED, dh, 0xFF5E0000);
     uint32_t *pl0 = clk_reg;
-    pl0 += 0xC0; // PL0_REF_CTRL reg offset 0xC0
+    pl0 += 0xC0 >> 2; // PL0_REF_CTRL reg offset 0xC0
     int divisor;
     // get rand pl_range, switch case for pl_clk
     int pl_index = rand() % 5;

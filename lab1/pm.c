@@ -18,7 +18,7 @@
 //#include "mx6_registers.h"
 #include <unistd.h>
 
-#define MAP_SIZE 4096UL
+#define MAP_SIZE 8192UL
 #define MAP_MASK (MAP_SIZE - 1)
 
 
