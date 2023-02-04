@@ -15,12 +15,11 @@
 #include "dm.c"
 #include "pm.c"
 
-#define MAP_SIZE 8192UL
 #define MAP_MASK (MAP_SIZE - 1)
 #define uint32_t unsigned int
 int ps_range[] = {45, 75, 30, 52, 25};
-
 int pl_range[] = {5, 6, 8, 10, 15};
+int number = 2048 * 4;
 
 void clk_rng(){
     double ps_clk;
@@ -52,22 +51,22 @@ void clk_rng(){
         APLL_CTRL = (25 << 8) + (1 << 16);
         APLL_CFG = (3 << 5) + 10 + (3 << 10) + (63 << 25) + (1000 << 13);
     }
-    pm(0xfd1a0020, APLL_CTRL);
-    pm(0xfd1a0024, APLL_CFG);
+    pm(0xfd1a0020, APLL_CTRL, number);
+    pm(0xfd1a0024, APLL_CFG,number);
     // program bypass
-    pm(0xfd1a0020, APLL_CTRL + 8);
+    pm(0xfd1a0020, APLL_CTRL + 8,number);
     // assert reset
-    pm(0xfd1a0020, APLL_CTRL + 9);
+    pm(0xfd1a0020, APLL_CTRL + 9,number);
     // deassert reset
-    pm(0xfd1a0020, APLL_CTRL + 8);
+    pm(0xfd1a0020, APLL_CTRL + 8,number);
     // while check for lock
-    while ((dm(0xfd1a0044) & 1) != 0x1) {
+    while ((dm(0xfd1a0044,number) & 1) != 0x1) {
         sleep(1);
         printf("Waiting check for lock\n");
     }
     // deassert bypass
-    pm(0xfd1a0020, APLL_CTRL);
-    printf("PS switched to clock %f MHz with %i\n", ps_clk, ps_index);
+    pm(0xfd1a0020, APLL_CTRL,number);
+    printf("PS switched to clock %f MHz with random index %i\n", ps_clk, ps_index);
 
     // PL clk:
     int dh = open("/dev/mem", O_RDWR | O_SYNC);
@@ -99,17 +98,16 @@ void clk_rng(){
            | (1 << 16) // bit 23:16 is divisor 1
            | (divisor << 8); // bit 15:0 is clock divisor 0
     munmap(clk_reg, 0x1000);
-    printf("PL switched to clock %f MHz\n", pl_clk);
+    printf("PL switched to clock %f MHz with random index %i\n", pl_clk, pl_index);
 
 }
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        printf("Lab 1 - USAGE:  (loop count) (number of 32 bit words) \n");
-        return -1;
-    }
+//    if (argc < 2) {
+//        printf("Lab 1 - USAGE:  (loop count) (number of 32 bit words) \n");
+//        return -1;
+//    }
     int count = 1;
     int loop_flag = 0;
-    int number = 2048;
     // if argc == 3, set loop count to argv[1] and turn flag to 1, set number to argv[2]
     if (argc == 3) {
         count = strtoul(argv[1], 0, 0);
@@ -130,12 +128,12 @@ int main(int argc, char *argv[]) {
         // call clk_rng to change rand clocks
         clk_rng();
         // use pm to program the data at the address
-        pm(address, value);
+        pm(address, value,number);
         // use dm to check for correctness and print output "Test passed: "xx" loops of "yy" 32-bit words
-        if (dm(address) == value) {
-            printf("Test passed: %i loops of %i 32-bit words\n", count, number);
+        if (dm(address,number) == value) {
+            printf("Test passed: %i loops of %i 32-bit words with %i\n", count, number, value);
         } else {
-            printf("Test failed: %i doesn't match %i\n", dm(address), value);
+            printf("Test failed: %i doesn't match %i\n", dm(address,number), value);
         }
         // check loop flag to decrement count
         if (loop_flag) {

@@ -18,11 +18,10 @@
 //#include "mx6_registers.h"
 #include <unistd.h>
 
-#define MAP_SIZE 8192UL
 #define MAP_MASK (MAP_SIZE - 1)
 
 
-int pm( unsigned int target_addr, unsigned int value ) 
+int pm(unsigned int target_addr, unsigned int value, int MAP_SIZE)
 {
 
 	int fd = open("/dev/mem", O_RDWR|O_SYNC);
