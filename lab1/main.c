@@ -7,7 +7,6 @@
 
 #include "stdio.h"
 #include <stdlib.h>
-
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -15,13 +14,12 @@
 #include "dm.c"
 #include "pm.c"
 
-#define MAP_MASK (MAP_SIZE - 1)
 #define uint32_t unsigned int
 int ps_range[] = {45, 75, 30, 52, 25};
 int pl_range[] = {5, 6, 8, 10, 15};
 int number = 2048 * 4;
 
-void clk_rng(){
+void clk_rng() {
     double ps_clk;
     double pl_clk;
     // PS clk:
@@ -30,15 +28,15 @@ void clk_rng(){
     int ps_index = rand() % 5;
     int APLL_CTRL;
     int APLL_CFG;
-    if (ps_index == 0){
+    if (ps_index == 0) {
         ps_clk = 1499;
         APLL_CTRL = 45 << 8;
         APLL_CFG = (3 << 5) + 12 + (3 << 10) + (63 << 25) + (825 << 13);
-    } else if (ps_index == 1){
+    } else if (ps_index == 1) {
         ps_clk = 1250;
         APLL_CTRL = (75 << 8) + (1 << 16);
         APLL_CFG = (3 << 5) + 2 + (3 << 10) + (63 << 25) + (600 << 13);
-    } else if (ps_index == 2){
+    } else if (ps_index == 2) {
         ps_clk = 1000;
         APLL_CTRL = 30 << 8;
         APLL_CFG = (4 << 5) + 6 + (3 << 10) + (63 << 25) + (1000 << 13);
@@ -52,20 +50,20 @@ void clk_rng(){
         APLL_CFG = (3 << 5) + 10 + (3 << 10) + (63 << 25) + (1000 << 13);
     }
     pm(0xfd1a0020, APLL_CTRL, number);
-    pm(0xfd1a0024, APLL_CFG,number);
+    pm(0xfd1a0024, APLL_CFG, number);
     // program bypass
-    pm(0xfd1a0020, APLL_CTRL + 8,number);
+    pm(0xfd1a0020, APLL_CTRL + 8, number);
     // assert reset
-    pm(0xfd1a0020, APLL_CTRL + 9,number);
+    pm(0xfd1a0020, APLL_CTRL + 9, number);
     // deassert reset
-    pm(0xfd1a0020, APLL_CTRL + 8,number);
+    pm(0xfd1a0020, APLL_CTRL + 8, number);
     // while check for lock
-    while ((dm(0xfd1a0044,number) & 1) != 0x1) {
+    while ((dm(0xfd1a0044, number) & 1) != 0x1) {
         sleep(1);
         printf("Waiting check for lock\n");
     }
     // deassert bypass
-    pm(0xfd1a0020, APLL_CTRL,number);
+    pm(0xfd1a0020, APLL_CTRL, number);
     printf("PS switched to clock %f MHz with random index %i\n", ps_clk, ps_index);
 
     // PL clk:
@@ -85,7 +83,7 @@ void clk_rng(){
     divisor = pl_range[pl_index];
     if (pl_index == 0) {
         pl_clk = 300;
-    } else if (pl_index == 1){
+    } else if (pl_index == 1) {
         pl_clk = 250;
     } else if (pl_index == 2) {
         pl_clk = 187.5;
@@ -101,18 +99,15 @@ void clk_rng(){
     printf("PL switched to clock %f MHz with random index %i\n", pl_clk, pl_index);
 
 }
+
 int main(int argc, char *argv[]) {
-//    if (argc < 2) {
-//        printf("Lab 1 - USAGE:  (loop count) (number of 32 bit words) \n");
-//        return -1;
-//    }
     int count = 1;
     int loop_flag = 0;
     // if argc == 3, set loop count to argv[1] and turn flag to 1, set number to argv[2]
     if (argc == 3) {
         count = strtoul(argv[1], 0, 0);
         loop_flag = 1;
-        number = strtoul(argv[2], 0, 0);
+        number = strtoul(argv[2], 0, 0) * 4;
     }
 
     srand(time(0));         // Seed the random number generator
@@ -128,12 +123,12 @@ int main(int argc, char *argv[]) {
         // call clk_rng to change rand clocks
         clk_rng();
         // use pm to program the data at the address
-        pm(address, value,number);
+        pm(address, value, number);
         // use dm to check for correctness and print output "Test passed: "xx" loops of "yy" 32-bit words
-        if (dm(address,number) == value) {
+        if (dm(address, number) == value) {
             printf("Test passed: %i loops of %i 32-bit words with %i\n", count, number, value);
         } else {
-            printf("Test failed: %i doesn't match %i\n", dm(address,number), value);
+            printf("Test failed: %i doesn't match %i\n", dm(address, number), value);
         }
         // check loop flag to decrement count
         if (loop_flag) {
