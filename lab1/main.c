@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
         pm(address, value, number);
         // use dm to check for correctness and print output "Test passed: "xx" loops of "yy" 32-bit words
         if (dm(address, number) == value) {
-            printf("Test passed: %i loops of %i 32-bit words with %i\n", count, number, value);
+            printf("Test passed: %i loops of %i 32-bit words with %i on address %x\n", count, number, value, address);
         } else {
             printf("Test failed: %i doesn't match %i\n", dm(address, number), value);
         }
