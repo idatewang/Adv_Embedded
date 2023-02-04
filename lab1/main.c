@@ -59,27 +59,26 @@ int main(int argc, char *argv[]) {
         int ps_index = rand() % 5;
         int APLL_CTRL;
         int APLL_CFG;
-        switch (ps_index) {
-            case 0:
-                ps_clk = 1499;
-                APLL_CTRL = 45 << 8;
-                APLL_CFG = (3 << 5) + 12 + (3 << 10) + (63 << 25) + (825 << 13);
-            case 1:
-                ps_clk = 1250;
-                APLL_CTRL = (75 << 8) + (1 << 16);
-                APLL_CFG = (3 << 5) + 2 + (3 << 10) + (63 << 25) + (600 << 13);
-            case 2:
-                ps_clk = 1000;
-                APLL_CTRL = 30 << 8;
-                APLL_CFG = (4 << 5) + 6 + (3 << 10) + (63 << 25) + (1000 << 13);
-            case 3:
-                ps_clk = 858;
-                APLL_CTRL = (52 << 8) + (1 << 16);
-                APLL_CFG = (3 << 5) + 2 + (3 << 10) + (63 << 25) + (700 << 13);
-            case 4:
-                ps_clk = 416.6;
-                APLL_CTRL = (25 << 8) + (1 << 16);
-                APLL_CFG = (3 << 5) + 10 + (3 << 10) + (63 << 25) + (1000 << 13);
+        if (ps_index == 0){
+            ps_clk = 1499;
+            APLL_CTRL = 45 << 8;
+            APLL_CFG = (3 << 5) + 12 + (3 << 10) + (63 << 25) + (825 << 13);
+        } else if (ps_index == 1){
+            ps_clk = 1250;
+            APLL_CTRL = (75 << 8) + (1 << 16);
+            APLL_CFG = (3 << 5) + 2 + (3 << 10) + (63 << 25) + (600 << 13);
+        } else if (ps_index == 2){
+            ps_clk = 1000;
+            APLL_CTRL = 30 << 8;
+            APLL_CFG = (4 << 5) + 6 + (3 << 10) + (63 << 25) + (1000 << 13);
+        } else if (ps_index == 3) {
+            ps_clk = 858;
+            APLL_CTRL = (52 << 8) + (1 << 16);
+            APLL_CFG = (3 << 5) + 2 + (3 << 10) + (63 << 25) + (700 << 13);
+        } else if (ps_index == 4) {
+            ps_clk = 416.6;
+            APLL_CTRL = (25 << 8) + (1 << 16);
+            APLL_CFG = (3 << 5) + 10 + (3 << 10) + (63 << 25) + (1000 << 13);
         }
         pm(0xfd1a0020, APLL_CTRL);
         pm(0xfd1a0024, APLL_CFG);
@@ -96,7 +95,7 @@ int main(int argc, char *argv[]) {
         }
         // deassert bypass
         pm(0xfd1a0020, APLL_CTRL);
-        printf("PS switched to clock %f MHz\n", ps_clk);
+        printf("PS switched to clock %f MHz with %i\n", ps_clk, ps_index);
 
         // PL clk:
         int dh = open("/dev/mem", O_RDWR | O_SYNC);
