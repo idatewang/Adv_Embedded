@@ -52,8 +52,8 @@ build CMakeFiles/lab1.dir/dm.c.o: C_COMPILER__lab1_Debug /Users/idatewang/Docume
   OBJECT_DIR = CMakeFiles/lab1.dir
   OBJECT_FILE_DIR = CMakeFiles/lab1.dir
 
-build CMakeFiles/lab1.dir/main.c.o: C_COMPILER__lab1_Debug /Users/idatewang/Documents/ADV/lab1/main.c || cmake_object_order_depends_target_lab1
-  DEP_FILE = CMakeFiles/lab1.dir/main.c.o.d
+build CMakeFiles/lab1.dir/test2.c.o: C_COMPILER__lab1_Debug /Users/idatewang/Documents/ADV/lab1/test2.c || cmake_object_order_depends_target_lab1
+  DEP_FILE = CMakeFiles/lab1.dir/test2.c.o.d
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.1.sdk -fcolor-diagnostics -std=gnu11
   OBJECT_DIR = CMakeFiles/lab1.dir
   OBJECT_FILE_DIR = CMakeFiles/lab1.dir
@@ -72,7 +72,7 @@ build CMakeFiles/lab1.dir/pm.c.o: C_COMPILER__lab1_Debug /Users/idatewang/Docume
 #############################################
 # Link the executable lab1
 
-build lab1: C_EXECUTABLE_LINKER__lab1_Debug CMakeFiles/lab1.dir/dm.c.o CMakeFiles/lab1.dir/main.c.o CMakeFiles/lab1.dir/pm.c.o
+build lab1: C_EXECUTABLE_LINKER__lab1_Debug CMakeFiles/lab1.dir/dm.c.o CMakeFiles/lab1.dir/test2.c.o CMakeFiles/lab1.dir/pm.c.o
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.1.sdk
   OBJECT_DIR = CMakeFiles/lab1.dir
   POST_BUILD = :

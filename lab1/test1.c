@@ -97,7 +97,6 @@ void clk_rng() {
            | (divisor << 8); // bit 15:0 is clock divisor 0
     munmap(clk_reg, 0x1000);
     printf("PL switched to clock %f MHz with random index %i\n", pl_clk, pl_index);
-
 }
 
 int main(int argc, char *argv[]) {
@@ -126,7 +125,7 @@ int main(int argc, char *argv[]) {
         pm(address, value, number);
         // use dm to check for correctness and print output "Test passed: "xx" loops of "yy" 32-bit words
         if (dm(address, number) == value) {
-            printf("Test passed: %i loops of %i 32-bit words with %i on address %x\n", count, number, value, address);
+            printf("Test passed: %i loops of %i 32-bit words with %i on address 0x%x\n", count, number, value, address);
         } else {
             printf("Test failed: %i doesn't match %i\n", dm(address, number), value);
         }
