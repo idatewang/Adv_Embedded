@@ -93,8 +93,16 @@ void memdump(void* virtual_address, int byte_count) {
 
 void transfer(unsigned int *cdma_virtual_address, int length)
 {
+    // transfer FFFC to b002
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
+    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
+    dma_set(cdma_virtual_address, BTT, length*4);
+    cdma_sync(cdma_virtual_address);
+    dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
+    // transder b002 to 2000
+    dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
+    dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length*4);
     cdma_sync(cdma_virtual_address);
@@ -167,12 +175,13 @@ int main() {
 
     //printf("Source memory block:      "); memdump(ocm, 32);
     //printf("Destination memory block: "); memdump(BRAM_virtual_address, 32);
-
+    sleep(2);
+    printf("Sleeping...\n");
     transfer(cdma_virtual_address, 20);
     //printf("DMA Registers:            "); memdump(cdma_virtual_address, 32);
 
     for(int i=0; i<20; i++)
-    {            
+    {
         printf("RAM result: 0x%.8x and c result is 0x%.8x  element %d\n",
                         BRAM_virtual_address[i], c[i], i);
         if(BRAM_virtual_address[i] != c[i])
