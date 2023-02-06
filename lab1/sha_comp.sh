@@ -5,8 +5,10 @@ DIFF=$(diff 0000_sha 2000_sha)
 if [ "$DIFF" ] 
 then
 	diff 0000_sha 2000_sha
-    echo -e "Not the same."
+    echo "Not the same."
 else
 	diff 0000_sha 2000_sha
-	echo -e "Files are the same.\n\n"
+	echo "Files are the same.\n\n"
+	echo ""
+	echo ""
 fi
