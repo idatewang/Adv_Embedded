@@ -65,12 +65,12 @@ void clk_rng() {
 }
 
 int main(int argc, char *argv[]) {
-    int count = 1;
-    int loop_flag = 0;
+    int count = 0;
+    int loop_flag = 1;
     // if argc == 3, set loop count to argv[1] and turn flag to 1, set number to argv[2]
     if (argc == 3) {
         count = strtoul(argv[1], 0, 0);
-        loop_flag = 1;
+        loop_flag = count;
         number = strtoul(argv[2], 0, 0) * 4;
     }
 
@@ -79,7 +79,12 @@ int main(int argc, char *argv[]) {
     /* ---------------------------------------------------------------
     *   Main loop
     */
-    while (count) {
+    while (loop_flag) {
+        // check count to decrement count
+        if (count > 0) {
+            count -= 1;
+            loop_flag -= 1;
+        }
         // generate random address within 0xFFFC_0000 - 0xFFFD_FFFC since RAND_MAX is defined as a 4 byte value 0x7FFF_FFFF
         int address = rand() % 131068 + 0xFFFC0000;
         // generate random value
@@ -93,10 +98,6 @@ int main(int argc, char *argv[]) {
             printf("Test passed: %i loops of %i 32-bit words with %i on address 0x%x\n", count, number, value, address);
         } else {
             printf("Test failed: %i doesn't match %i\n", dm(address, number), value);
-        }
-        // check loop flag to decrement count
-        if (loop_flag) {
-            count -= 1;
         }
     }
     return 0;

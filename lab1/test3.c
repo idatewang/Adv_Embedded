@@ -1,3 +1,10 @@
+/*
+ * Duo Wang
+ * dw28746
+ * 2/5/2023
+ * Derived from dma_ocm_test.c
+*/
+
 #include "dm.c"
 #include "pm.c"
 #include <stdio.h>
@@ -6,7 +13,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <time.h>
-#include <stdlib.h>
 /*********************************************************************
    # DEFINES
 */
@@ -27,7 +33,6 @@
 #define DA                  0x20        // Destination Address
 #define BTT                 0x28
 #define uint32_t unsigned int
-int number = 2048 * 4;
 
 
 /*************************** DMA_SET ************************************
@@ -100,6 +105,9 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
 /**************************************************************************
                                 MAIN
 **************************************************************************/
+int ps_range[] = {45, 75, 30, 52, 25};
+int pl_range[] = {5, 6, 8, 10, 15};
+int number = 2048 * 4;
 
 void clk_rng() {
     double ps_clk;
@@ -147,6 +155,38 @@ void clk_rng() {
     // deassert bypass
     pm(0xfd1a0020, APLL_CTRL, number);
     printf("PS switched to clock %f MHz with random index %i\n", ps_clk, ps_index);
+
+    // PL clk:
+    int dh = open("/dev/mem", O_RDWR | O_SYNC);
+    if (dh == -1) {
+        printf("Unable to open /dev/mem\n");
+    }
+    uint32_t *clk_reg = mmap(NULL,
+                             0x1000,
+                             PROT_READ | PROT_WRITE,
+                             MAP_SHARED, dh, 0xFF5E0000);
+    uint32_t *pl0 = clk_reg;
+    pl0 += 0xC0 >> 2; // PL0_REF_CTRL reg offset 0xC0
+    int divisor;
+    // get rand pl_range, if else for pl_clk
+    int pl_index = rand() % 5;
+    divisor = pl_range[pl_index];
+    if (pl_index == 0) {
+        pl_clk = 300;
+    } else if (pl_index == 1) {
+        pl_clk = 250;
+    } else if (pl_index == 2) {
+        pl_clk = 187.5;
+    } else if (pl_index == 3) {
+        pl_clk = 150;
+    } else if (pl_index == 4) {
+        pl_clk = 100;
+    }
+    *pl0 = (1 << 24) // bit 24 enables clock
+           | (1 << 16) // bit 23:16 is divisor 1
+           | (divisor << 8); // bit 15:0 is clock divisor 0
+    munmap(clk_reg, 0x1000);
+    printf("PL switched to clock %f MHz with random index %i\n", pl_clk, pl_index);
 }
 
 int main(int argc, char *argv[]) {
@@ -161,9 +201,9 @@ int main(int argc, char *argv[]) {
     srand(time(0));         // Seed the random number generator
 
     while (loop_flag) {
-        if (count>0) {
-            count-=1;
-            loop_flag-=1;
+        if (count > 0) {
+            count -= 1;
+            loop_flag -= 1;
         }
         // Open /dev/mem which represents the whole physical memory
         int dh = open("/dev/mem", O_RDWR | O_SYNC);
@@ -224,11 +264,11 @@ int main(int argc, char *argv[]) {
                 return -1;
             }
         }
-        printf("Loop: %i: test passed!!\n", loop_flag);
+        printf("Loop %i: test passed!!\n", loop_flag);
         munmap(ocm, 65536);
         munmap(cdma_virtual_address, 4096);
         munmap(BRAM_virtual_address, 4096);
-        system("./sha_comp_in_C.sh");
+        system("./sha_comp.sh");
     }
     return 0;
 }
