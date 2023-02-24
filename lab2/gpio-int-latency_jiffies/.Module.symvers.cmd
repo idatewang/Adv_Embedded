@@ -1,0 +1,1 @@
+cmd_/root/code/ULTRA/gpio-int-latency_jiffies/Module.symvers := sed 's/\.ko$$/\.o/' /root/code/ULTRA/gpio-int-latency_jiffies/modules.order | scripts/mod/modpost    -o /root/code/ULTRA/gpio-int-latency_jiffies/Module.symvers -e -i Module.symvers   -T -

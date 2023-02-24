@@ -1,0 +1,1 @@
+cmd_/root/code/ULTRA/gpio-int-latency_jiffies/gpio_int.ko := ld -r  -EL  -maarch64elf  --build-id=sha1  -T scripts/module.lds -o /root/code/ULTRA/gpio-int-latency_jiffies/gpio_int.ko /root/code/ULTRA/gpio-int-latency_jiffies/gpio_int.o /root/code/ULTRA/gpio-int-latency_jiffies/gpio_int.mod.o;  true
