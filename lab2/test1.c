@@ -251,15 +251,15 @@ int main(int argc, char *argv[]) {
                        BRAM_virtual_address[i], c[i], i);
                 printf("test failed!!\n");
                 munmap(ocm, 65536);
-                munmap(cdma_virtual_address, 8196);
-                munmap(BRAM_virtual_address, 8196);
+                munmap(cdma_virtual_address, 8192);
+                munmap(BRAM_virtual_address, 8192);
                 return -1;
             }
         }
         printf("Loop %i: test passed!!\n", loop_flag);
         munmap(ocm, 65536);
-        munmap(cdma_virtual_address, 8196);
-        munmap(BRAM_virtual_address, 8196);
+        munmap(cdma_virtual_address, 8192);
+        munmap(BRAM_virtual_address, 8192);
         // calls shell script to compare results
         system("./sha_comp.sh");
     }
