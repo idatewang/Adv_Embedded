@@ -94,7 +94,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     // deassert timer_enable
     pm(0xa0050004,0,2048*2);
-    dm(0xa0050008,2048*2);
+    printf("counter: %d",dm(0xa0050008,2048*2));
     dma_set(cdma_virtual_address, BTT, length * 4);
     cdma_sync(cdma_virtual_address);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
