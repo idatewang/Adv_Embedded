@@ -214,13 +214,13 @@ int main(int argc, char *argv[]) {
         }
         // Memory map AXI Lite register block
         uint32_t *cdma_virtual_address = mmap(NULL,
-                                              4096,
+                                              8192,
                                               PROT_READ | PROT_WRITE,
                                               MAP_SHARED,
                                               dh,
                                               CDMA);
         uint32_t *BRAM_virtual_address = mmap(NULL,
-                                              4096,
+                                              8192,
                                               PROT_READ | PROT_WRITE,
                                               MAP_SHARED,
                                               dh,
@@ -251,15 +251,15 @@ int main(int argc, char *argv[]) {
                        BRAM_virtual_address[i], c[i], i);
                 printf("test failed!!\n");
                 munmap(ocm, 65536);
-                munmap(cdma_virtual_address, 4096);
-                munmap(BRAM_virtual_address, 4096);
+                munmap(cdma_virtual_address, 8196);
+                munmap(BRAM_virtual_address, 8196);
                 return -1;
             }
         }
         printf("Loop %i: test passed!!\n", loop_flag);
         munmap(ocm, 65536);
-        munmap(cdma_virtual_address, 4096);
-        munmap(BRAM_virtual_address, 4096);
+        munmap(cdma_virtual_address, 8196);
+        munmap(BRAM_virtual_address, 8196);
         // calls shell script to compare results
         system("./sha_comp.sh");
     }
