@@ -387,12 +387,12 @@ int main(int argc, char *argv[]) {
             }
         }
         printf("Loop %i: test passed!!\n", loop_flag);
-        (void) close(dma_dev_fd);
         munmap(ocm, 65536);
         munmap(cdma_virtual_address, 8192);
         munmap(BRAM_virtual_address, 8192);
         // calls shell script to compare results
         system("./sha_comp.sh");
     }
+    (void) close(dma_dev_fd);
     return 0;
 }
