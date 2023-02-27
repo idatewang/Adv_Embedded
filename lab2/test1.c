@@ -99,7 +99,12 @@ int cdma_sync(unsigned int *dma_virtual_address) {
 //        /* Confirm we are coming out of suspend mode correcly */
 //        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
 //    }
-    while (!sigio_signal_processed){}
+    while (!sigio_signal_processed){
+        /* ---------------------------------------------------------------------
+ * Assert dma output pin to trigger generation of edge sensitive interrupt:
+ */
+        pm(0xa0050004, 3, 2048 * 2);
+    }
     printf("outside while\n");
 }
 
@@ -130,10 +135,6 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     printf("1. total count counted in 250 MHz: %d\n", dm(0xa0050008, 2048 * 2));
-    /* ---------------------------------------------------------------------
-     * Assert dma output pin to trigger generation of edge sensitive interrupt:
-     */
-    pm(0xa0050004, 3, 2048 * 2);
     dma_set(cdma_virtual_address, BTT, length * 4);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
@@ -147,10 +148,8 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     // print total counts
     printf("3. total count counted in 250 MHz: %d\n", dm(0xa0050008, 2048 * 2));
-    /* ---------------------------------------------------------------------
-     * Assert dma output pin to trigger generation of edge sensitive interrupt and deassert timer_enable:
-     */
-    pm(0xa0050004, 1, 2048 * 2);
+    // deassert timer_enable
+    pm(0xa0050004, 0, 2048 * 2);
     dma_set(cdma_virtual_address, BTT, length * 4);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
