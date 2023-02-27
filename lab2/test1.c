@@ -90,13 +90,19 @@ int cdma_sync(unsigned int *dma_virtual_address) {
 //    while (!(status & 1 << 1)) {
 //        status = dma_get(dma_virtual_address, CDMASR);
 //    }
+    printf("inside cdma_sync\n");
     if (sigio_signal_processed == 0) {
+        printf("inside suspend\n");
 
         rc = sigsuspend(&signal_mask_most);
 
         /* Confirm we are coming out of suspend mode correcly */
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
+    (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
+
+    //assert(sigio_signal_count == i + 1);   // Critical assertion!!
+
 }
 
 /***************************  MEMDUMP ************************************
@@ -356,9 +362,10 @@ int main(int argc, char *argv[]) {
         // generate random clocks
         clk_rng();
         // sleep from piazza
-        sleep(2);
         printf("Sleeping...\n");
+        sleep(2);
         // transfer starts
+        printf("Transfer starts...\n");
         transfer(cdma_virtual_address, 2048);
         // check results
         for (int i = 0; i < 2048; i++) {
