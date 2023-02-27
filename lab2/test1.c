@@ -99,7 +99,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
 //        /* Confirm we are coming out of suspend mode correcly */
 //        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
 //    }
-    pm(0xa0050004, 3, 2048 * 2);
+    pm(0xa0050004, 1, 2048 * 2);
     while (!sigio_signal_processed){
         /* ---------------------------------------------------------------------
  * Assert dma output pin to trigger generation of edge sensitive interrupt:
@@ -126,6 +126,7 @@ void memdump(void *virtual_address, int byte_count) {
 */
 
 void transfer(unsigned int *cdma_virtual_address, int length) {
+    int total_count = 0;
     // turn interrupt flag off before transfer
     sigio_signal_processed = 0;
     // assert timer_enable
@@ -134,11 +135,13 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
-    printf("1. total count counted in 250 MHz: %d\n", dm(0xa0050008, 2048 * 2));
     dma_set(cdma_virtual_address, BTT, length * 4);
+    // aggregate counts
+    total_count += dm(0xa0050008, 2048 * 2);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
-    printf("2. total count counted in 250 MHz: %d\n", dm(0xa0050008, 2048 * 2));
+    // assert timer_enable
+    pm(0xa0050004, 2, 2048 * 2);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
     // turn interrupt flag off before transfer
     sigio_signal_processed = 0;
@@ -146,14 +149,16 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
     dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
-    // print total counts
-    printf("3. total count counted in 250 MHz: %d\n", dm(0xa0050008, 2048 * 2));
+    dma_set(cdma_virtual_address, BTT, length * 4);
+    // aggregate counts
+    total_count += dm(0xa0050008, 2048 * 2);
     // deassert timer_enable
     pm(0xa0050004, 0, 2048 * 2);
-    dma_set(cdma_virtual_address, BTT, length * 4);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
+    // print total counts
+    printf("3. total count counted in 250 MHz: %d\n", total_count);
 }
 
 /**************************************************************************
