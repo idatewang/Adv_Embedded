@@ -91,14 +91,16 @@ int cdma_sync(unsigned int *dma_virtual_address) {
 //        status = dma_get(dma_virtual_address, CDMASR);
 //    }
     printf("inside cdma_sync\n");
-    if (sigio_signal_processed == 0) {
-        printf("inside suspend\n");
-
-        rc = sigsuspend(&signal_mask_most);
-
-        /* Confirm we are coming out of suspend mode correcly */
-        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
-    }
+//    if (sigio_signal_processed == 0) {
+//        printf("inside suspend\n");
+//
+//        rc = sigsuspend(&signal_mask_most);
+//
+//        /* Confirm we are coming out of suspend mode correcly */
+//        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
+//    }
+    while (!sigio_signal_processed){}
+    printf("outside while\n");
 }
 
 /***************************  MEMDUMP ************************************
