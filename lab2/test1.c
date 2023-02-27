@@ -152,12 +152,12 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
      */
     printf("3. total count counted in 250 MHz: %d\n", dm(0xa0050008, 2048 * 2));
 
-    // deassert timer_enable
-    pm(0xa0050004, 1, 2048 * 2);
     //pm(0xa0050004, 0, 2048 * 2);
     // print total counts
     printf("4. total count counted in 250 MHz: %d\n", dm(0xa0050008, 2048 * 2));
     dma_set(cdma_virtual_address, BTT, length * 4);
+    // deassert timer_enable
+    pm(0xa0050004, 1, 2048 * 2);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
