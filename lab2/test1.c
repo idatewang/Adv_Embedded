@@ -88,13 +88,13 @@ void memdump(void *virtual_address, int byte_count) {
 void transfer(unsigned int *cdma_virtual_address, int length) {
     // transfer FFFC to b002
     // assert timer_enable
-    pm(0xa0050004,2,2048*2);
+    pm(0xa0050004, 2, 2048 * 2);
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     // deassert timer_enable
-    pm(0xa0050004,0,2048*2);
-    printf("counter: %d",dm(0xa0050008,2048*2));
+    pm(0xa0050004, 0, 2048 * 2);
+    printf("counter: %d", dm(0xa0050008, 2048 * 2));
     dma_set(cdma_virtual_address, BTT, length * 4);
     cdma_sync(cdma_virtual_address);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
@@ -112,7 +112,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
                                 MAIN
 **************************************************************************/
 int ps_range[] = {45, 30, 25};
-int pl_range[] = {5,  8,  15};
+int pl_range[] = {5, 8, 15};
 int number = 2048 * 4;
 
 void clk_rng() {

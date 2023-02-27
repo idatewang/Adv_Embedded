@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------------------
- *  intr_latency.c
+ *  dma_latency.c
  *
  *  author: Mark McDermott
  *  Created: Jan 30, 2009
  *  Updated: Apr 23, 2017     For Zedboard
  *  Updated: Feb  2, 2021     For Ultra96
  *
- * This routine measures the average latecncy from the time an interrupt input
+ * This routine measures the average latency from the time an interrupt input
  * to the SOC occurs to when it is handled. This is used to determine how fast
  * the SOC can handle interrupts from the H1KP
  * 
@@ -50,15 +50,15 @@
 #define MAP_MASK (MAP_SIZE - 1)
 
 /* ------------------------------------------------------------------------------- 
- * Device path name for the GPIO device
+ * Device path name for the dma device
  */
 
-#define GPIO_DEV_PATH    "/dev/gpio_int"
+#define DMA_DEV_PATH    "/dev/dma_int"
 
-#define GPIO_DR_NUM     0x0             // Pin Number
-#define GPIO_DR         0xA0050004      // Interrupt register
-//#define GPIO_LED_NUM    0x1
-//#define GPIO_LED        0xA0030010      // LED register
+#define DMA_DR_NUM     0x0             // Pin Number
+#define DMA_DR         0xA0050004      // Interrupt register
+//#define dma_LED_NUM    0x1
+//#define dma_LED        0xA0030010      // LED register
 /* -------------------------------------------------------------------------------
  * Number of interrupt latency measurements to take:
  */
@@ -66,10 +66,10 @@
 #define NUM_MEASUREMENTS    10000
 
 /* -------------------------------------------------------------------------------
- * File descriptor for GPIO device
+ * File descriptor for dma device
  */
 
-int gpio_dev_fd = -1;
+int dma_dev_fd = -1;
 
 /* -------------------------------------------------------------------------------
  *      Counter of number of times sigio_signal_handler() has been executed
@@ -96,7 +96,7 @@ unsigned long intr_latency_measurements[NUM_MEASUREMENTS];
  *      Function prototypes
  */
 
-int gpio_set_pin(unsigned int target_addr, unsigned int pin_number, unsigned int bit_val);
+int dma_set_pin(unsigned int target_addr, unsigned int pin_number, unsigned int bit_val);
 
 unsigned long int_sqrt(unsigned long n);
 
@@ -146,18 +146,18 @@ int main(void) {
      *      Open the device file
      */
 
-    gpio_dev_fd = open(GPIO_DEV_PATH, O_RDWR);
+    dma_dev_fd = open(DMA_DEV_PATH, O_RDWR);
 
-    if (gpio_dev_fd == -1) {
-        perror("open() of " GPIO_DEV_PATH " failed");
+    if (dma_dev_fd == -1) {
+        perror("open() of " DMA_DEV_PATH " failed");
         return -1;
     }
 
     /* -------------------------------------------------------------------------
-     * Set our process to receive SIGIO signals from the GPIO device:
+     * Set our process to receive SIGIO signals from the dma device:
      */
 
-    rc = fcntl(gpio_dev_fd, F_SETOWN, getpid());
+    rc = fcntl(dma_dev_fd, F_SETOWN, getpid());
 
     if (rc == -1) {
         perror("fcntl() SETOWN failed\n");
@@ -165,11 +165,11 @@ int main(void) {
     }
 
     /* -------------------------------------------------------------------------
-     * Enable reception of SIGIO signals for the gpio_dev_fd descriptor
+     * Enable reception of SIGIO signals for the dma_dev_fd descriptor
      */
 
-    int fd_flags = fcntl(gpio_dev_fd, F_GETFL);
-    rc = fcntl(gpio_dev_fd, F_SETFL, fd_flags | O_ASYNC);
+    int fd_flags = fcntl(dma_dev_fd, F_GETFL);
+    rc = fcntl(dma_dev_fd, F_SETFL, fd_flags | O_ASYNC);
 
     if (rc == -1) {
         perror("fcntl() SETFL failed\n");
@@ -180,10 +180,10 @@ int main(void) {
      * Take interrupt latency measurements in a loop:
      */
 
-    rc = gpio_set_pin(GPIO_DR, GPIO_DR_NUM, 0);     // Clear output pin
-    // rc = gpio_set_pin(GPIO_LED, GPIO_LED_NUM, 0);   // Clear the LED
+    rc = dma_set_pin(DMA_DR, DMA_DR_NUM, 0);     // Clear output pin
+    // rc = dma_set_pin(dma_LED, dma_LED_NUM, 0);   // Clear the LED
     if (rc != 0) {
-        perror("gpio_set_pin() failed");
+        perror("dma_set_pin() failed");
         return -1;
     }
 
@@ -212,13 +212,13 @@ int main(void) {
         (void) gettimeofday(&start_timestamp, NULL);
 
         /* ---------------------------------------------------------------------
-         * Assert GPIO output pin to trigger generation of edge sensitive interrupt:
+         * Assert dma output pin to trigger generation of edge sensitive interrupt:
          */
 
-        rc = gpio_set_pin(GPIO_DR, GPIO_DR_NUM, 1);
-        //rc = gpio_set_pin(GPIO_LED, GPIO_LED_NUM, 1);        
+        rc = dma_set_pin(DMA_DR, DMA_DR_NUM, 1);
+        //rc = dma_set_pin(dma_LED, dma_LED_NUM, 1);
         if (rc != 0) {
-            perror("gpio_set_pin() failed");
+            perror("dma_set_pin() failed");
             return -1;
         }
 
@@ -237,10 +237,10 @@ int main(void) {
 
         assert(sigio_signal_count == i + 1);   // Critical assertion!!
 
-        rc = gpio_set_pin(GPIO_DR, GPIO_DR_NUM, 0);
-        //rc = gpio_set_pin(GPIO_LED, GPIO_LED_NUM, 0);       
+        rc = dma_set_pin(DMA_DR, DMA_DR_NUM, 0);
+        //rc = dma_set_pin(dma_LED, dma_LED_NUM, 0);
         if (rc != 0) {
-            perror("gpio_set_pin() failed");
+            perror("dma_set_pin() failed");
             return -1;
         }
 
@@ -255,12 +255,12 @@ int main(void) {
 
     }  // End of for loop
 
-    //rc = gpio_set_pin(GPIO_LED, GPIO_LED_NUM, 0); 
+    //rc = dma_set_pin(dma_LED, dma_LED_NUM, 0);
     /* -------------------------------------------------------------------------
      * Close device file
      */
 
-    (void) close(gpio_dev_fd);
+    (void) close(dma_dev_fd);
 
     /* -------------------------------------------------------------------------
      * Compute interrupt latency stats:
@@ -390,12 +390,12 @@ unsigned long int_sqrt(unsigned long n) {
 
 /* -----------------------------------------------------------------------------
 *
-* gpio_set_pin routine: This routine sets and clears a single bit
-* in a GPIO register.
+* dma_set_pin routine: This routine sets and clears a single bit
+* in a dma register.
 *
 */
 
-int gpio_set_pin(unsigned int target_addr, unsigned int pin_number, unsigned int bit_val) {
+int dma_set_pin(unsigned int target_addr, unsigned int pin_number, unsigned int bit_val) {
     unsigned int reg_data;
 
     int fd = open("/dev/mem", O_RDWR | O_SYNC);

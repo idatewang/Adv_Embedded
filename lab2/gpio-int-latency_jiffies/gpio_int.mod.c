@@ -1,5 +1,7 @@
 #include <linux/module.h>
+
 #define INCLUDE_VERMAGIC
+
 #include <linux/build-salt.h>
 #include <linux/elfnote-lto.h>
 #include <linux/vermagic.h>
@@ -8,24 +10,30 @@
 BUILD_SALT;
 BUILD_LTO_INFO;
 
-MODULE_INFO(vermagic, VERMAGIC_STRING);
-MODULE_INFO(name, KBUILD_MODNAME);
+MODULE_INFO(vermagic, VERMAGIC_STRING
+);
+MODULE_INFO(name, KBUILD_MODNAME
+);
 
 __visible struct module __this_module
 __section(".gnu.linkonce.this_module") = {
-	.name = KBUILD_MODNAME,
-	.init = init_module,
+.
+name = KBUILD_MODNAME,
+.
+init = init_module,
 #ifdef CONFIG_MODULE_UNLOAD
-	.exit = cleanup_module,
+.exit = cleanup_module,
 #endif
-	.arch = MODULE_ARCH_INIT,
+.
+arch = MODULE_ARCH_INIT,
 };
 
 #ifdef CONFIG_RETPOLINE
 MODULE_INFO(retpoline, "Y");
 #endif
 
-MODULE_INFO(depends, "");
+MODULE_INFO(depends,
+"");
 
 MODULE_ALIAS("of:N*T*Cxlnx,ctmr-intout");
 MODULE_ALIAS("of:N*T*Cxlnx,ctmr-intoutC*");
