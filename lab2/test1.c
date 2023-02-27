@@ -134,12 +134,11 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     /* ---------------------------------------------------------------------
      * Assert dma output pin to trigger generation of edge sensitive interrupt:
      */
-    pm(0xa0050004, 3, 2048 * 2);
     dma_set(cdma_virtual_address, BTT, length * 4);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
+    pm(0xa0050004, 3, 2048 * 2);
     printf("2. total count counted in 250 MHz: %d\n", dm(0xa0050008, 2048 * 2));
-
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
     // turn interrupt flag off before transfer
     sigio_signal_processed = 0;
