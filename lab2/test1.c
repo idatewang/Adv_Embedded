@@ -134,7 +134,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     /* ---------------------------------------------------------------------
      * Assert dma output pin to trigger generation of edge sensitive interrupt:
      */
-    pm(0xa0050004, 1, 2048 * 2);
+    pm(0xa0050004, 3, 2048 * 2);
     dma_set(cdma_virtual_address, BTT, length * 4);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
