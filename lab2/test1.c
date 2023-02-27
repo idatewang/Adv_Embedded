@@ -55,6 +55,8 @@
  *      Flag to indicate that a SIGIO signal has been processed
  */
 static volatile sig_atomic_t sigio_signal_processed = 0;
+volatile int rc;
+sigset_t signal_mask, signal_mask_old, signal_mask_most;
 
 
 /*************************** DMA_SET ************************************
@@ -88,8 +90,12 @@ int cdma_sync(unsigned int *dma_virtual_address) {
 //    while (!(status & 1 << 1)) {
 //        status = dma_get(dma_virtual_address, CDMASR);
 //    }
-    while(!sigio_signal_processed){
-        printf("Waiting for sigio flag to be cleared.");
+    if (sigio_signal_processed == 0) {
+
+        rc = sigsuspend(&signal_mask_most);
+
+        /* Confirm we are coming out of suspend mode correcly */
+        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
 }
 
@@ -239,8 +245,7 @@ void clk_rng() {
 void sigio_signal_handler(int signo) {
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
-    //printf("sigio_signal_handler called (signo=%d)\n", signo);
-
+    printf("sigio_signal_handler called (signo=%d)\n", signo);
     /* -------------------------------------------------------------------------
      * Set global flag
      */
@@ -289,6 +294,15 @@ int main(int argc, char *argv[]) {
         perror("fcntl() SETFL failed\n");
         return -1;
     }
+    /* ---------------------------------------------------------------------
+     * NOTE: This next section of code must be excuted each cycle to prevent
+     * a race condition between the SIGIO signal handler and sigsuspend()
+     */
+
+    (void) sigfillset(&signal_mask);
+    (void) sigfillset(&signal_mask_most);
+    (void) sigdelset(&signal_mask_most, SIGIO);
+    (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old);
 
 
     // RNG and transfer part
