@@ -99,11 +99,11 @@ int cdma_sync(unsigned int *dma_virtual_address) {
 //        /* Confirm we are coming out of suspend mode correcly */
 //        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
 //    }
+    pm(0xa0050004, 3, 2048 * 2);
     while (!sigio_signal_processed){
         /* ---------------------------------------------------------------------
  * Assert dma output pin to trigger generation of edge sensitive interrupt:
  */
-        pm(0xa0050004, 3, 2048 * 2);
     }
     printf("outside while\n");
 }
