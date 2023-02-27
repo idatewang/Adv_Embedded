@@ -99,10 +99,6 @@ int cdma_sync(unsigned int *dma_virtual_address) {
         /* Confirm we are coming out of suspend mode correcly */
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
-    (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-
-    //assert(sigio_signal_count == i + 1);   // Critical assertion!!
-
 }
 
 /***************************  MEMDUMP ************************************
@@ -309,6 +305,8 @@ int main(int argc, char *argv[]) {
     (void) sigfillset(&signal_mask_most);
     (void) sigdelset(&signal_mask_most, SIGIO);
     (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old);
+    (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
+    //assert(sigio_signal_count == i + 1);   // Critical assertion!!
 
 
     // RNG and transfer part
