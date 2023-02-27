@@ -13,6 +13,24 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <time.h>
+#include <unistd.h>
+#include <assert.h>
+#include <errno.h>
+#include <limits.h>
+#include <linux/errno.h>
+#include <linux/fs.h>
+#include <sys/mman.h>
+#include <linux/sched.h>
+#include <linux/types.h>
+#include <linux/version.h>
+#include <math.h>
+#include <signal.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 /*********************************************************************
    # DEFINES
 */
@@ -33,6 +51,10 @@
 #define DA                  0x20        // Destination Address
 #define BTT                 0x28
 #define uint32_t unsigned int
+/* -------------------------------------------------------------------------------
+ *      Flag to indicate that a SIGIO signal has been processed
+ */
+static volatile sig_atomic_t sigio_signal_processed = 0;
 
 
 /*************************** DMA_SET ************************************
@@ -58,13 +80,16 @@ unsigned int dma_get(unsigned int *dma_virtual_address, int offset) {
 */
 
 int cdma_sync(unsigned int *dma_virtual_address) {
-    unsigned int status = dma_get(dma_virtual_address, CDMASR);
-    if ((status & 0x40) != 0) {
-        unsigned int desc = dma_get(dma_virtual_address, CURDESC_PNTR);
-        printf("error address : %X\n", desc);
-    }
-    while (!(status & 1 << 1)) {
-        status = dma_get(dma_virtual_address, CDMASR);
+//    unsigned int status = dma_get(dma_virtual_address, CDMASR);
+//    if ((status & 0x40) != 0) {
+//        unsigned int desc = dma_get(dma_virtual_address, CURDESC_PNTR);
+//        printf("error address : %X\n", desc);
+//    }
+//    while (!(status & 1 << 1)) {
+//        status = dma_get(dma_virtual_address, CDMASR);
+//    }
+    while(!sigio_signal_processed){
+        printf("Waiting for sigio flag to be cleared.");
     }
 }
 
@@ -86,24 +111,30 @@ void memdump(void *virtual_address, int byte_count) {
 */
 
 void transfer(unsigned int *cdma_virtual_address, int length) {
-    // transfer FFFC to b002
+    // turn interrupt flag off before transfer
+    sigio_signal_processed = 0;
     // assert timer_enable
     pm(0xa0050004, 2, 2048 * 2);
+    // transfer FFFC to b002
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
-    // deassert timer_enable
-    pm(0xa0050004, 0, 2048 * 2);
-    printf("counter: %d", dm(0xa0050008, 2048 * 2));
     dma_set(cdma_virtual_address, BTT, length * 4);
+    // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
-
+    // turn interrupt flag off before transfer
+    sigio_signal_processed = 0;
     // transder b002 to 2000
     dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
     dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
+    // deassert timer_enable
+    pm(0xa0050004, 0, 2048 * 2);
+    // print total counts
+    printf("total count counted in 250 MHz: %d\n", dm(0xa0050008, 2048 * 2));
     dma_set(cdma_virtual_address, BTT, length * 4);
+    // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
 }
@@ -114,6 +145,18 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
 int ps_range[] = {45, 30, 25};
 int pl_range[] = {5, 8, 15};
 int number = 2048 * 4;
+volatile int sigio_signal_count = 0;
+/* -------------------------------------------------------------------------------
+ * Device path name for the dma device
+ */
+#define DMA_DEV_PATH    "/dev/dma_int"
+
+volatile int rc;
+
+/* -------------------------------------------------------------------------------
+ * File descriptor for dma device
+ */
+int dma_dev_fd = -1;
 
 void clk_rng() {
     double ps_clk;
@@ -189,7 +232,66 @@ void clk_rng() {
     printf("PL switched to clock %f MHz with random index %i\n", pl_clk, pl_index);
 }
 
+/* -----------------------------------------------------------------------------
+ * SIGIO signal handler
+ */
+
+void sigio_signal_handler(int signo) {
+    assert(signo == SIGIO);   // Confirm correct signal #
+    sigio_signal_count++;
+    //printf("sigio_signal_handler called (signo=%d)\n", signo);
+
+    /* -------------------------------------------------------------------------
+     * Set global flag
+     */
+    sigio_signal_processed = 1;
+}
+
 int main(int argc, char *argv[]) {
+    // interrupt part
+    /* --------------------------------------------------------------------------
+    *      Register signal handler for SIGIO signal:
+    */
+    struct sigaction sig_action;
+    memset(&sig_action, 0, sizeof sig_action);
+    sig_action.sa_handler = sigio_signal_handler;
+    /* --------------------------------------------------------------------------
+     *      Block all signals while our signal handler is executing:
+     */
+    (void) sigfillset(&sig_action.sa_mask);
+    rc = sigaction(SIGIO, &sig_action, NULL);
+    if (rc == -1) {
+        perror("sigaction() failed");
+        return -1;
+    }
+    /* -------------------------------------------------------------------------
+     *      Open the device file
+     */
+    dma_dev_fd = open(DMA_DEV_PATH, O_RDWR);
+    if (dma_dev_fd == -1) {
+        perror("open() of " DMA_DEV_PATH " failed");
+        return -1;
+    }
+    /* -------------------------------------------------------------------------
+     * Set our process to receive SIGIO signals from the dma device:
+     */
+    rc = fcntl(dma_dev_fd, F_SETOWN, getpid());
+    if (rc == -1) {
+        perror("fcntl() SETOWN failed\n");
+        return -1;
+    }
+    /* -------------------------------------------------------------------------
+     * Enable reception of SIGIO signals for the dma_dev_fd descriptor
+     */
+    int fd_flags = fcntl(dma_dev_fd, F_GETFL);
+    rc = fcntl(dma_dev_fd, F_SETFL, fd_flags | O_ASYNC);
+    if (rc == -1) {
+        perror("fcntl() SETFL failed\n");
+        return -1;
+    }
+
+
+    // RNG and transfer part
     int count = 0;
     int loop_flag = 1;
     if (argc == 3) {
