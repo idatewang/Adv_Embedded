@@ -127,6 +127,10 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
+    /* ---------------------------------------------------------------------
+     * Assert dma output pin to trigger generation of edge sensitive interrupt:
+     */
+    pm(0xa0050004, 1, 2048 * 2);
     dma_set(cdma_virtual_address, BTT, length * 4);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync(cdma_virtual_address);
@@ -137,6 +141,10 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
     dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
+    /* ---------------------------------------------------------------------
+     * Assert dma output pin to trigger generation of edge sensitive interrupt:
+     */
+    pm(0xa0050004, 1, 2048 * 2);
     // deassert timer_enable
     pm(0xa0050004, 0, 2048 * 2);
     // print total counts
@@ -378,6 +386,7 @@ int main(int argc, char *argv[]) {
             }
         }
         printf("Loop %i: test passed!!\n", loop_flag);
+        (void) close(dma_dev_fd);
         munmap(ocm, 65536);
         munmap(cdma_virtual_address, 8192);
         munmap(BRAM_virtual_address, 8192);
