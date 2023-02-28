@@ -94,7 +94,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
     /* ---------------------------------------------------------------------
      * Wait for SIGIO signal handler to be executed.
      */
-//    printf("inside cdma_sync\n");
+    printf("inside cdma_sync\n");
 //
     if (sigio_signal_processed == 0) {
 
@@ -103,7 +103,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
         /* Confirm we are coming out of suspend mode correcly */
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
-//    printf("outside suspend\n");
+    printf("outside suspend\n");
 
 }
 
@@ -134,6 +134,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, BTT, length * 4);
     cdma_sync(cdma_virtual_address);
     raise(SIGIO);
+    sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
     // transder b002 to 2000
     dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
@@ -146,6 +147,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, BTT, length * 4);
     cdma_sync(cdma_virtual_address);
     raise(SIGIO);
+    sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
 }
 
