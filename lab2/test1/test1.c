@@ -339,7 +339,7 @@ int main(int argc, char *argv[]) {
                 clk_iterate(ps_i, pl_i);
                 // sleep from piazza
                 //printf("Sleeping...\n");
-                sleep(1);
+                //sleep(1);
                 // transfer starts
                 //printf("Transfer starts...\n");
                 transfer(cdma_virtual_address, 2048);
@@ -381,203 +381,204 @@ int main(int argc, char *argv[]) {
                 system("./sha_comp.sh");
             }
         }
-        printf("Loop %i: tests passed!!\n", loop_flag);
-        /* -------------------------------------------------------------------------
-         * Compute interrupt latency stats:
-         */
-        unsigned long min_latency;
-        unsigned long max_latency;
-        double average_latency;
-        double std_deviation;
-        compute_interrupt_latency_stats(
-                &min_latency,
-                &max_latency,
-                &average_latency,
-                &std_deviation,
-                latency_0_0);
-        /*
-         * Print interrupt latency stats:
-         */
-        printf("1499 300\n");
-        printf("Minimum Latency:    %lu\n"
-               "Maximum Latency:    %lu\n"
-               "Average Latency:    %f\n"
-               "Standard Deviation: %f\n"
-               "Number of samples:  %d\n",
-               min_latency,
-               max_latency,
-               average_latency,
-               std_deviation,
-               loop_count);
-
-        compute_interrupt_latency_stats(
-                &min_latency,
-                &max_latency,
-                &average_latency,
-                &std_deviation,
-                latency_0_1);
-        /*
-         * Print interrupt latency stats:
-         */
-        printf("1499 187.5\n");
-        printf("Minimum Latency:    %lu\n"
-               "Maximum Latency:    %lu\n"
-               "Average Latency:    %f\n"
-               "Standard Deviation: %f\n"
-               "Number of samples:  %d\n",
-               min_latency,
-               max_latency,
-               average_latency,
-               std_deviation,
-               loop_count);
-
-        compute_interrupt_latency_stats(
-                &min_latency,
-                &max_latency,
-                &average_latency,
-                &std_deviation,
-                latency_0_2);
-        /*
-         * Print interrupt latency stats:
-         */
-        printf("1499 100\n");
-        printf("Minimum Latency:    %lu\n"
-               "Maximum Latency:    %lu\n"
-               "Average Latency:    %f\n"
-               "Standard Deviation: %f\n"
-               "Number of samples:  %d\n",
-               min_latency,
-               max_latency,
-               average_latency,
-               std_deviation,
-               loop_count);
-
-        compute_interrupt_latency_stats(
-                &min_latency,
-                &max_latency,
-                &average_latency,
-                &std_deviation,
-                latency_1_0);
-        /*
-         * Print interrupt latency stats:
-         */
-        printf("999 300\n");
-        printf("Minimum Latency:    %lu\n"
-               "Maximum Latency:    %lu\n"
-               "Average Latency:    %f\n"
-               "Standard Deviation: %f\n"
-               "Number of samples:  %d\n",
-               min_latency,
-               max_latency,
-               average_latency,
-               std_deviation,
-               loop_count);
-
-        compute_interrupt_latency_stats(
-                &min_latency,
-                &max_latency,
-                &average_latency,
-                &std_deviation,
-                latency_1_1);
-        /*
-         * Print interrupt latency stats:
-         */
-        printf("999 187.5\n");
-        printf("Minimum Latency:    %lu\n"
-               "Maximum Latency:    %lu\n"
-               "Average Latency:    %f\n"
-               "Standard Deviation: %f\n"
-               "Number of samples:  %d\n",
-               min_latency,
-               max_latency,
-               average_latency,
-               std_deviation,
-               loop_count);
-
-        compute_interrupt_latency_stats(
-                &min_latency,
-                &max_latency,
-                &average_latency,
-                &std_deviation,
-                latency_1_2);
-        /*
-         * Print interrupt latency stats:
-         */
-        printf("999 100\n");
-        printf("Minimum Latency:    %lu\n"
-               "Maximum Latency:    %lu\n"
-               "Average Latency:    %f\n"
-               "Standard Deviation: %f\n"
-               "Number of samples:  %d\n",
-               min_latency,
-               max_latency,
-               average_latency,
-               std_deviation,
-               loop_count);
-
-        compute_interrupt_latency_stats(
-                &min_latency,
-                &max_latency,
-                &average_latency,
-                &std_deviation,
-                latency_2_0);
-        /*
-         * Print interrupt latency stats:
-         */
-        printf("416.6 300\n");
-        printf("Minimum Latency:    %lu\n"
-               "Maximum Latency:    %lu\n"
-               "Average Latency:    %f\n"
-               "Standard Deviation: %f\n"
-               "Number of samples:  %d\n",
-               min_latency,
-               max_latency,
-               average_latency,
-               std_deviation,
-               loop_count);
-
-        compute_interrupt_latency_stats(
-                &min_latency,
-                &max_latency,
-                &average_latency,
-                &std_deviation,
-                latency_2_1);
-        /*
-         * Print interrupt latency stats:
-         */
-        printf("416.6 187.5\n");
-        printf("Minimum Latency:    %lu\n"
-               "Maximum Latency:    %lu\n"
-               "Average Latency:    %f\n"
-               "Standard Deviation: %f\n"
-               "Number of samples:  %d\n",
-               min_latency,
-               max_latency,
-               average_latency,
-               std_deviation,
-               loop_count);
-
-        compute_interrupt_latency_stats(
-                &min_latency,
-                &max_latency,
-                &average_latency,
-                &std_deviation,
-                latency_2_2);
-        /*
-         * Print interrupt latency stats:
-         */
-        printf("416.6 100\n");
-        printf("Minimum Latency:    %lu\n"
-               "Maximum Latency:    %lu\n"
-               "Average Latency:    %f\n"
-               "Standard Deviation: %f\n"
-               "Number of samples:  %d\n",
-               min_latency,
-               max_latency,
-               average_latency,
-               std_deviation,
-               loop_count);
+        //printf("Loop %i: tests passed!!\n", loop_flag);
 
     }
+    /* -------------------------------------------------------------------------
+ * Compute interrupt latency stats:
+ */
+    unsigned long min_latency;
+    unsigned long max_latency;
+    double average_latency;
+    double std_deviation;
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_0_0);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("1499 300\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_0_1);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("1499 187.5\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_0_2);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("1499 100\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_1_0);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("999 300\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_1_1);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("999 187.5\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_1_2);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("999 100\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_2_0);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("416.6 300\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_2_1);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("416.6 187.5\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_2_2);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("416.6 100\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count);
+
     return 0;
 }
