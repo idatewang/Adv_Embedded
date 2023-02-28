@@ -103,6 +103,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
         /* Confirm we are coming out of suspend mode correcly */
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
+    (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
     printf("outside suspend\n");
 
 }
@@ -132,8 +133,8 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
-    cdma_sync(cdma_virtual_address);
     raise(SIGIO);
+    cdma_sync(cdma_virtual_address);
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
     // transder b002 to 2000
@@ -145,8 +146,8 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     pm(0xa0050004, 0, 2048 * 2);
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
-    cdma_sync(cdma_virtual_address);
     raise(SIGIO);
+    cdma_sync(cdma_virtual_address);
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
 }
@@ -481,7 +482,6 @@ int main(int argc, char *argv[]) {
                 munmap(BRAM_virtual_address, 8192);
                 // calls shell script to compare results
                 system("./sha_comp.sh");
-                (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
 
             }
         }
