@@ -1,10 +1,5 @@
 dm 0xFFFC2000 | grep -o "=.*" | sha256sum > 2000_sha
 dm 0xFFFC0000 | grep -o "=.*" | sha256sum > 0000_sha
-echo "dm 0xFFFC2000:"
-dm 0xFFFC2000
-echo "dm 0xFFFC0000:"
-dm 0xFFFC0000
-echo "Compared..............."
 DIFF=$(diff 0000_sha 2000_sha)
 if [ "$DIFF" ] 
 then
@@ -12,7 +7,4 @@ then
     echo "Not the same."
 else
 	diff 0000_sha 2000_sha
-	echo "Files are the same.\n\n"
-	echo ""
-	echo ""
 fi
