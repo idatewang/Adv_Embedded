@@ -489,6 +489,8 @@ int main(int argc, char *argv[]) {
         //assert(sigio_signal_count == loop_count - loop_flag);   // Critical assertion!!
 
     }
+    (void) close(dma_dev_fd);
+
     /* -------------------------------------------------------------------------
  * Compute interrupt latency stats:
  */
