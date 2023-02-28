@@ -1,6 +1,6 @@
 #!/bin/sh
 
 while ( true  ) do
-./dma_latency.exe
+./test2 500 2048
 cat /proc/interrupts | grep gpio_int
 done

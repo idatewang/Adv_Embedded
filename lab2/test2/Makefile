@@ -6,7 +6,7 @@ CC := /usr/bin/gcc
 # objects will be automatically built from the corresponding .c file -
 # no need to list the source files explicitly.
 
-obj-m := dma_int.o
+obj-m := gpio_int.o
 
 # KDIR is the location of the kernel source.  The current standard is
 # to link to the associated source tree from the directory containing
@@ -27,12 +27,12 @@ PWD   := $(shell pwd)
 
 default:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
-	$(CC)  test1.c -o test1.exe
-	$(CC)  test1.c -g -o test1_gdb
+	$(CC)  test2.c -o test2.exe
+	$(CC)  test2.c -g -o test2_gdb
 #	$(CC)  dma_latency_csv.c -o dma_latency_csv
 
 clean::
 	$(RM) .skeleton* *.cmd *.o *.ko *.mod.c *.exe
-	$(RM) test1_gdb
+	$(RM) test2_gdb
 	$(RM) -R .tmp*
 
