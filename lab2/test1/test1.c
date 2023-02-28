@@ -94,7 +94,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
     /* ---------------------------------------------------------------------
      * Wait for SIGIO signal handler to be executed.
      */
-    printf("inside cdma_sync\n");
+    //printf("inside cdma_sync\n");
 //
     if (sigio_signal_processed == 0) {
 
@@ -104,7 +104,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
     (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-    printf("outside suspend\n");
+    //printf("outside suspend\n");
 
 }
 
@@ -317,7 +317,7 @@ void clk_iterate(int ps_index, int pl_index) {
 void sigio_signal_handler(int signo) {
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
-    printf("sigio_signal_handler called (signo=%d)\n", signo);
+    //printf("sigio_signal_handler called (signo=%d)\n", signo);
     /* -------------------------------------------------------------------------
      * Set global flag
      */
@@ -510,12 +510,14 @@ int main(int argc, char *argv[]) {
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
            "Standard Deviation: %f\n"
-           "Number of samples:  %d\n",
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
            min_latency,
            max_latency,
            average_latency,
            std_deviation,
-           loop_count);
+           loop_count,
+           sigio_signal_count/2);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -531,12 +533,14 @@ int main(int argc, char *argv[]) {
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
            "Standard Deviation: %f\n"
-           "Number of samples:  %d\n",
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
            min_latency,
            max_latency,
            average_latency,
            std_deviation,
-           loop_count);
+           loop_count,
+           sigio_signal_count/2);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -552,12 +556,14 @@ int main(int argc, char *argv[]) {
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
            "Standard Deviation: %f\n"
-           "Number of samples:  %d\n",
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
            min_latency,
            max_latency,
            average_latency,
            std_deviation,
-           loop_count);
+           loop_count,
+           sigio_signal_count/2);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -573,12 +579,14 @@ int main(int argc, char *argv[]) {
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
            "Standard Deviation: %f\n"
-           "Number of samples:  %d\n",
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
            min_latency,
            max_latency,
            average_latency,
            std_deviation,
-           loop_count);
+           loop_count,
+           sigio_signal_count/2);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -594,12 +602,14 @@ int main(int argc, char *argv[]) {
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
            "Standard Deviation: %f\n"
-           "Number of samples:  %d\n",
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
            min_latency,
            max_latency,
            average_latency,
            std_deviation,
-           loop_count);
+           loop_count,
+           sigio_signal_count/2);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -615,12 +625,14 @@ int main(int argc, char *argv[]) {
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
            "Standard Deviation: %f\n"
-           "Number of samples:  %d\n",
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
            min_latency,
            max_latency,
            average_latency,
            std_deviation,
-           loop_count);
+           loop_count,
+           sigio_signal_count/2);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -636,12 +648,14 @@ int main(int argc, char *argv[]) {
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
            "Standard Deviation: %f\n"
-           "Number of samples:  %d\n",
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
            min_latency,
            max_latency,
            average_latency,
            std_deviation,
-           loop_count);
+           loop_count,
+           sigio_signal_count/2);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -657,12 +671,14 @@ int main(int argc, char *argv[]) {
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
            "Standard Deviation: %f\n"
-           "Number of samples:  %d\n",
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
            min_latency,
            max_latency,
            average_latency,
            std_deviation,
-           loop_count);
+           loop_count,
+           sigio_signal_count/2);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -678,12 +694,14 @@ int main(int argc, char *argv[]) {
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
            "Standard Deviation: %f\n"
-           "Number of samples:  %d\n",
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
            min_latency,
            max_latency,
            average_latency,
            std_deviation,
-           loop_count);
+           loop_count,
+           sigio_signal_count/2);
 
     return 0;
 }
