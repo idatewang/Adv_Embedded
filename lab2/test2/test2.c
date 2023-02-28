@@ -95,7 +95,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
 //    while (!(status & 1 << 1)) {
 //        status = dma_get(dma_virtual_address, CDMASR);
 //    }
-    printf("inside cdma_sync\n");
+    //printf("inside cdma_sync\n");
 //    if (sigio_signal_processed == 0) {
 //        printf("inside suspend\n");
 //
@@ -117,7 +117,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
     (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-    printf("outside while\n");
+    //printf("outside while\n");
 }
 
 /***************************  MEMDUMP ************************************
@@ -332,7 +332,7 @@ void clk_iterate(int ps_index, int pl_index) {
 void sigio_signal_handler(int signo) {
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
-    printf("sigio_signal_handler called (signo=%d)\n", signo);
+    //printf("sigio_signal_handler called (signo=%d)\n", signo);
     /* -------------------------------------------------------------------------
      * Set global flag
      */
