@@ -174,12 +174,12 @@ volatile int sigio_signal_count = 0;
 /* -------------------------------------------------------------------------------
  * Device path name for the dma device
  */
-#define DMA_DEV_PATH    "/dev/dma_int"
+#define GPIO_DEV_PATH    "/dev/gpio_int"
 
 /* -------------------------------------------------------------------------------
  * File descriptor for dma device
  */
-int dma_dev_fd = -1;
+int gpio_dev_fd = -1;
 /* ---------------------------------------------------------------
 * sqrt routine
 */
@@ -386,24 +386,24 @@ int main(int argc, char *argv[]) {
                 /* -------------------------------------------------------------------------
                  *      Open the device file
                  */
-                dma_dev_fd = open(DMA_DEV_PATH, O_RDWR);
-                if (dma_dev_fd == -1) {
-                    perror("open() of " DMA_DEV_PATH " failed");
+                gpio_dev_fd = open(GPIO_DEV_PATH, O_RDWR);
+                if (gpio_dev_fd == -1) {
+                    perror("open() of " GPIO_DEV_PATH " failed");
                     return -1;
                 }
                 /* -------------------------------------------------------------------------
                  * Set our process to receive SIGIO signals from the dma device:
                  */
-                rc = fcntl(dma_dev_fd, F_SETOWN, getpid());
+                rc = fcntl(gpio_dev_fd, F_SETOWN, getpid());
                 if (rc == -1) {
                     perror("fcntl() SETOWN failed\n");
                     return -1;
                 }
                 /* -------------------------------------------------------------------------
-                 * Enable reception of SIGIO signals for the dma_dev_fd descriptor
+                 * Enable reception of SIGIO signals for the gpio_dev_fd descriptor
                  */
-                int fd_flags = fcntl(dma_dev_fd, F_GETFL);
-                rc = fcntl(dma_dev_fd, F_SETFL, fd_flags | O_ASYNC);
+                int fd_flags = fcntl(gpio_dev_fd, F_GETFL);
+                rc = fcntl(gpio_dev_fd, F_SETFL, fd_flags | O_ASYNC);
                 if (rc == -1) {
                     perror("fcntl() SETFL failed\n");
                     return -1;
@@ -529,7 +529,7 @@ int main(int argc, char *argv[]) {
         //assert(sigio_signal_count == loop_count - loop_flag);   // Critical assertion!!
 
     }
-    (void) close(dma_dev_fd);
+    (void) close(gpio_dev_fd);
 
     /* -------------------------------------------------------------------------
  * Compute interrupt latency stats:
