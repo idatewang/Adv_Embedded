@@ -100,11 +100,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
 //        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
 //    }
     pm(0xa0050004, 1, 2048 * 2);
-    while (!sigio_signal_processed){
-        /* ---------------------------------------------------------------------
- * Assert dma output pin to trigger generation of edge sensitive interrupt:
- */
-    }
+    while (!sigio_signal_processed){}
     printf("outside while\n");
 }
 
@@ -172,8 +168,6 @@ volatile int sigio_signal_count = 0;
  * Device path name for the dma device
  */
 #define DMA_DEV_PATH    "/dev/dma_int"
-
-volatile int rc;
 
 /* -------------------------------------------------------------------------------
  * File descriptor for dma device

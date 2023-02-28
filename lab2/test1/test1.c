@@ -53,6 +53,12 @@
 #define uint32_t unsigned int
 
 int clk_counts;
+/* -------------------------------------------------------------------------------
+ *      Flag to indicate that a SIGIO signal has been processed
+ */
+static volatile sig_atomic_t sigio_signal_processed = 0;
+volatile int rc;
+sigset_t signal_mask, signal_mask_old, signal_mask_most;
 
 /*************************** DMA_SET ************************************
 *
@@ -77,14 +83,28 @@ unsigned int dma_get(unsigned int *dma_virtual_address, int offset) {
 */
 
 int cdma_sync(unsigned int *dma_virtual_address) {
-    unsigned int status = dma_get(dma_virtual_address, CDMASR);
-    if ((status & 0x40) != 0) {
-        unsigned int desc = dma_get(dma_virtual_address, CURDESC_PNTR);
-        printf("error address : %X\n", desc);
+//    unsigned int status = dma_get(dma_virtual_address, CDMASR);
+//    if ((status & 0x40) != 0) {
+//        unsigned int desc = dma_get(dma_virtual_address, CURDESC_PNTR);
+//        printf("error address : %X\n", desc);
+//    }
+//    while (!(status & 1 << 1)) {
+//        status = dma_get(dma_virtual_address, CDMASR);
+//    }
+    /* ---------------------------------------------------------------------
+     * Wait for SIGIO signal handler to be executed.
+     */
+    printf("inside cdma_sync\n");
+
+    if (sigio_signal_processed == 0) {
+
+        rc = sigsuspend(&signal_mask_most);
+
+        /* Confirm we are coming out of suspend mode correcly */
+        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
-    while (!(status & 1 << 1)) {
-        status = dma_get(dma_virtual_address, CDMASR);
-    }
+    printf("outside suspend\n");
+
 }
 
 /***************************  MEMDUMP ************************************
@@ -134,6 +154,16 @@ int ps_range[] = {45, 30, 25};
 int pl_range[] = {5, 8, 15};
 int number = 2048 * 4;
 int loop_count;
+volatile int sigio_signal_count = 0;
+/* -------------------------------------------------------------------------------
+ * Device path name for the dma device
+ */
+#define DMA_DEV_PATH    "/dev/dma_int"
+
+/* -------------------------------------------------------------------------------
+ * File descriptor for dma device
+ */
+int dma_dev_fd = -1;
 
 /* ---------------------------------------------------------------
 * sqrt routine
@@ -275,6 +305,20 @@ void clk_iterate(int ps_index, int pl_index) {
     //printf("PL switched to clock %f MHz with index %i\n", pl_clk, pl_index);
 }
 
+/* -----------------------------------------------------------------------------
+ * SIGIO signal handler
+ */
+
+void sigio_signal_handler(int signo) {
+    assert(signo == SIGIO);   // Confirm correct signal #
+    sigio_signal_count++;
+    printf("sigio_signal_handler called (signo=%d)\n", signo);
+    /* -------------------------------------------------------------------------
+     * Set global flag
+     */
+    sigio_signal_processed = 1;
+}
+
 int main(int argc, char *argv[]) {
     int count = 0;
     int loop_flag = 1;
@@ -300,6 +344,60 @@ int main(int argc, char *argv[]) {
             count -= 1;
             loop_flag -= 1;
         }
+        // interrupt part
+        /* --------------------------------------------------------------------------
+        *      Register signal handler for SIGIO signal:
+        */
+        struct sigaction sig_action;
+        memset(&sig_action, 0, sizeof sig_action);
+        sig_action.sa_handler = sigio_signal_handler;
+        /* --------------------------------------------------------------------------
+         *      Block all signals while our signal handler is executing:
+         */
+        (void) sigfillset(&sig_action.sa_mask);
+        rc = sigaction(SIGIO, &sig_action, NULL);
+        if (rc == -1) {
+            perror("sigaction() failed");
+            return -1;
+        }
+        /* -------------------------------------------------------------------------
+         *      Open the device file
+         */
+        dma_dev_fd = open(DMA_DEV_PATH, O_RDWR);
+        if (dma_dev_fd == -1) {
+            perror("open() of " DMA_DEV_PATH " failed");
+            return -1;
+        }
+        /* -------------------------------------------------------------------------
+         * Set our process to receive SIGIO signals from the dma device:
+         */
+        rc = fcntl(dma_dev_fd, F_SETOWN, getpid());
+        if (rc == -1) {
+            perror("fcntl() SETOWN failed\n");
+            return -1;
+        }
+        /* -------------------------------------------------------------------------
+         * Enable reception of SIGIO signals for the dma_dev_fd descriptor
+         */
+        int fd_flags = fcntl(dma_dev_fd, F_GETFL);
+        rc = fcntl(dma_dev_fd, F_SETFL, fd_flags | O_ASYNC);
+        if (rc == -1) {
+            perror("fcntl() SETFL failed\n");
+            return -1;
+        }
+        /* ---------------------------------------------------------------------
+         * NOTE: This next section of code must be excuted each cycle to prevent
+         * a race condition between the SIGIO signal handler and sigsuspend()
+         */
+
+        (void) sigfillset(&signal_mask);
+        (void) sigfillset(&signal_mask_most);
+        (void) sigdelset(&signal_mask_most, SIGIO);
+        (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old);
+
+
+
+        // transfer part
         for (int ps_i = 0; ps_i < 3; ++ps_i) {
             for (int pl_i = 0; pl_i < 3; ++pl_i) {
 
@@ -381,7 +479,9 @@ int main(int argc, char *argv[]) {
                 system("./sha_comp.sh");
             }
         }
-        //printf("Loop %i: tests passed!!\n", loop_flag);
+        printf("%i ", loop_flag);
+        (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
+        assert(sigio_signal_count == loop_count - loop_flag);   // Critical assertion!!
 
     }
     /* -------------------------------------------------------------------------
