@@ -517,7 +517,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2);
+           sigio_signal_count/2/9);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -540,7 +540,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2);
+           sigio_signal_count/2/9);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -563,7 +563,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2);
+           sigio_signal_count/2/9);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -586,7 +586,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2);
+           sigio_signal_count/2/9);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -609,7 +609,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2);
+           sigio_signal_count/2/9);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -632,7 +632,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2);
+           sigio_signal_count/2/9);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -655,7 +655,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2);
+           sigio_signal_count/2/9);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -678,7 +678,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2);
+           sigio_signal_count/2/9);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -701,7 +701,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2);
+           sigio_signal_count/2/9);
 
     return 0;
 }
