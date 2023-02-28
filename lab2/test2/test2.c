@@ -166,7 +166,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     cdma_sync(cdma_virtual_address);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
     // print total counts
-    printf("3. total count counted in 250 MHz: %d\n", total_count);
+    //printf("3. total count counted in 250 MHz: %d\n", total_count);
 }
 
 /**************************************************************************
