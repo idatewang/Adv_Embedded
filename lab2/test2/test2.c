@@ -107,9 +107,16 @@ int cdma_sync(unsigned int *dma_virtual_address) {
     /* ---------------------------------------------------------------------
  * Take a start timestamp for interrupt latency measurement
  */
-    (void) gettimeofday(&start_timestamp, NULL);
     pm(0xa0050004, 1, 2048 * 2);
-    while (!sigio_signal_processed){}
+    (void) gettimeofday(&start_timestamp, NULL);
+    if (sigio_signal_processed == 0) {
+
+        rc = sigsuspend(&signal_mask_most);
+
+        /* Confirm we are coming out of suspend mode correcly */
+        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
+    }
+    (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
     printf("outside while\n");
 }
 
