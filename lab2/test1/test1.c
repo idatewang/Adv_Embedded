@@ -4,6 +4,29 @@
  * 2/27/2023
  * Derived from lab 1 test3.c
 */
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/proc_fs.h>
+#include <linux/version.h>
+#include <linux/errno.h>
+#include <linux/fs.h>
+#include <linux/mm.h>
+#include <linux/interrupt.h>
+#include <linux/sched.h>
+#include <asm/uaccess.h>
+#include <linux/io.h>
+#include <linux/module.h>
+#include <linux/vmalloc.h>
+#include <linux/mman.h>
+#include <linux/slab.h>
+#include <linux/ioport.h>
+#include <linux/platform_device.h>
+#include <linux/bitops.h>
+#include <linux/clk.h>
+#include <linux/gpio/driver.h>
+
+#include <linux/pm_runtime.h>
+#include <linux/of.h>
 
 #include "dm.c"
 #include "pm.c"
@@ -94,7 +117,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
     /* ---------------------------------------------------------------------
      * Wait for SIGIO signal handler to be executed.
      */
-    //printf("inside cdma_sync\n");
+    printk("inside cdma_sync\n");
 //
     if (sigio_signal_processed == 0) {
 
@@ -315,6 +338,8 @@ void clk_iterate(int ps_index, int pl_index) {
  */
 
 void sigio_signal_handler(int signo) {
+    printk("inside sigio_signal_handler\n");
+
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
     //printf("sigio_signal_handler called (signo=%d)\n", signo);
