@@ -47,9 +47,9 @@
 #define MODULE_NM "dma_interrupt"
 
 #undef DEBUG
-//#define DEBUG
+#define DEBUG
 #undef DEBUG1
-//#define DEBUG1
+#define DEBUG1
 
 volatile unsigned int interruptcount = 0;
 int temp = 0;
