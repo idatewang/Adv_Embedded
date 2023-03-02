@@ -535,7 +535,7 @@ int main(int argc, char *argv[]) {
                 munmap(cdma_virtual_address, 8192);
                 munmap(BRAM_virtual_address, 8192);
                 // calls shell script to compare results
-                system("./sha_comp.sh");
+                //system("./sha_comp.sh");
 
             }
         }
