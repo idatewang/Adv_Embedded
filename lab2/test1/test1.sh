@@ -1,6 +1,6 @@
 #!/bin/sh
 
-while ( true  ) do
-./test1.exe 35 2048
+# display interrupts before and after a 500 times run
 cat /proc/interrupts | grep dma_int
-done
+./test1.exe 500 2048
+cat /proc/interrupts | grep dma_int
