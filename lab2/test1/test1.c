@@ -133,7 +133,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
-    raise(SIGIO);
+    //raise(SIGIO);
     cdma_sync(cdma_virtual_address);
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
@@ -146,7 +146,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     pm(0xa0050004, 0, 2048 * 2);
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
-    raise(SIGIO);
+    //raise(SIGIO);
     cdma_sync(cdma_virtual_address);
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
@@ -351,66 +351,108 @@ int main(int argc, char *argv[]) {
     int latency_2_0[loop_flag];
     int latency_2_1[loop_flag];
     int latency_2_2[loop_flag];
+    // interrupt part
+    /* --------------------------------------------------------------------------
+    *      Register signal handler for SIGIO signal:
+    */
+    struct sigaction sig_action;
+    memset(&sig_action, 0, sizeof sig_action);
+    sig_action.sa_handler = sigio_signal_handler;
+    /* --------------------------------------------------------------------------
+     *      Block all signals while our signal handler is executing:
+     */
+    (void) sigfillset(&sig_action.sa_mask);
+    rc = sigaction(SIGIO, &sig_action, NULL);
+    if (rc == -1) {
+        perror("sigaction() failed");
+        return -1;
+    }
+    /* -------------------------------------------------------------------------
+     *      Open the device file
+     */
+    dma_dev_fd = open(DMA_DEV_PATH, O_RDWR);
+    if (dma_dev_fd == -1) {
+        perror("open() of " DMA_DEV_PATH " failed");
+        return -1;
+    }
+    /* -------------------------------------------------------------------------
+     * Set our process to receive SIGIO signals from the dma device:
+     */
+    rc = fcntl(dma_dev_fd, F_SETOWN, getpid());
+    if (rc == -1) {
+        perror("fcntl() SETOWN failed\n");
+        return -1;
+    }
+    /* -------------------------------------------------------------------------
+     * Enable reception of SIGIO signals for the dma_dev_fd descriptor
+     */
+    int fd_flags = fcntl(dma_dev_fd, F_GETFL);
+    rc = fcntl(dma_dev_fd, F_SETFL, fd_flags | O_ASYNC);
+    if (rc == -1) {
+        perror("fcntl() SETFL failed\n");
+        return -1;
+    }
+
     while (loop_flag) {
         if (count > 0) {
             count -= 1;
             loop_flag -= 1;
+        }
+        // interrupt part
+        /* --------------------------------------------------------------------------
+        *      Register signal handler for SIGIO signal:
+        */
+        struct sigaction sig_action;
+        memset(&sig_action, 0, sizeof sig_action);
+        sig_action.sa_handler = sigio_signal_handler;
+        /* --------------------------------------------------------------------------
+         *      Block all signals while our signal handler is executing:
+         */
+        (void) sigfillset(&sig_action.sa_mask);
+        rc = sigaction(SIGIO, &sig_action, NULL);
+        if (rc == -1) {
+            perror("sigaction() failed");
+            return -1;
+        }
+        /* -------------------------------------------------------------------------
+         *      Open the device file
+         */
+        dma_dev_fd = open(DMA_DEV_PATH, O_RDWR);
+        if (dma_dev_fd == -1) {
+            perror("open() of " DMA_DEV_PATH " failed");
+            return -1;
+        }
+        /* -------------------------------------------------------------------------
+         * Set our process to receive SIGIO signals from the dma device:
+         */
+        rc = fcntl(dma_dev_fd, F_SETOWN, getpid());
+        if (rc == -1) {
+            perror("fcntl() SETOWN failed\n");
+            return -1;
+        }
+        /* -------------------------------------------------------------------------
+         * Enable reception of SIGIO signals for the dma_dev_fd descriptor
+         */
+        int fd_flags = fcntl(dma_dev_fd, F_GETFL);
+        rc = fcntl(dma_dev_fd, F_SETFL, fd_flags | O_ASYNC);
+        if (rc == -1) {
+            perror("fcntl() SETFL failed\n");
+            return -1;
         }
 
 
 
         for (int ps_i = 0; ps_i < 3; ++ps_i) {
             for (int pl_i = 0; pl_i < 3; ++pl_i) {
-                // interrupt part
-                /* --------------------------------------------------------------------------
-                *      Register signal handler for SIGIO signal:
-                */
-                struct sigaction sig_action;
-                memset(&sig_action, 0, sizeof sig_action);
-                sig_action.sa_handler = sigio_signal_handler;
-                /* --------------------------------------------------------------------------
-                 *      Block all signals while our signal handler is executing:
-                 */
-                (void) sigfillset(&sig_action.sa_mask);
-                rc = sigaction(SIGIO, &sig_action, NULL);
-                if (rc == -1) {
-                    perror("sigaction() failed");
-                    return -1;
-                }
-                /* -------------------------------------------------------------------------
-                 *      Open the device file
-                 */
-                dma_dev_fd = open(DMA_DEV_PATH, O_RDWR);
-                if (dma_dev_fd == -1) {
-                    perror("open() of " DMA_DEV_PATH " failed");
-                    return -1;
-                }
-                /* -------------------------------------------------------------------------
-                 * Set our process to receive SIGIO signals from the dma device:
-                 */
-                rc = fcntl(dma_dev_fd, F_SETOWN, getpid());
-                if (rc == -1) {
-                    perror("fcntl() SETOWN failed\n");
-                    return -1;
-                }
-                /* -------------------------------------------------------------------------
-                 * Enable reception of SIGIO signals for the dma_dev_fd descriptor
-                 */
-                int fd_flags = fcntl(dma_dev_fd, F_GETFL);
-                rc = fcntl(dma_dev_fd, F_SETFL, fd_flags | O_ASYNC);
-                if (rc == -1) {
-                    perror("fcntl() SETFL failed\n");
-                    return -1;
-                }
                 /* ---------------------------------------------------------------------
                  * NOTE: This next section of code must be excuted each cycle to prevent
                  * a race condition between the SIGIO signal handler and sigsuspend()
                  */
 
-                (void) sigfillset(&signal_mask);
-                (void) sigfillset(&signal_mask_most);
-                (void) sigdelset(&signal_mask_most, SIGIO);
-                (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old);
+                (void) sigfillset(&signal_mask); // contain all sigs for sigmask
+                (void) sigfillset(&signal_mask_most); // contain all sigs for sigmost
+                (void) sigdelset(&signal_mask_most, SIGIO); // del SIGIO from sigmost -> sigmost missing SIGIO
+                (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old); // install signal_mask as signal set
 
                 // transfer part
                 // Open /dev/mem which represents the whole physical memory
