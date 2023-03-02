@@ -94,7 +94,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
     /* ---------------------------------------------------------------------
      * Wait for SIGIO signal handler to be executed.
      */
-    //printf("inside cdma_sync\n");
+    printf("inside cdma_sync\n");
 //
     if (sigio_signal_processed == 0) {
 
@@ -129,12 +129,12 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     // assert timer_enable
     pm(0xa0050004, 2, 2048 * 2);
     // transfer FFFC to b002
+    cdma_sync(cdma_virtual_address);
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
     //raise(SIGIO);
-    cdma_sync(cdma_virtual_address);
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
     // transder b002 to 2000
