@@ -353,6 +353,13 @@ int main(int argc, char *argv[]) {
         loop_count = loop_flag;
         number = strtoul(argv[2], 0, 0) * 4;
     }
+    // for lab 2 testing
+    if (argc == 2) {
+        count = 1;
+        loop_flag = count;
+        loop_count = loop_flag;
+        number = strtoul(argv[1], 0, 0) * 4;
+    }
 
     srand(time(0));         // Seed the random number generator
     int latency_0_0[loop_flag];

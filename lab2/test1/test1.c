@@ -133,7 +133,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
-    raise(SIGIO);
+    //raise(SIGIO);
     cdma_sync(cdma_virtual_address);
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
@@ -146,7 +146,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     pm(0xa0050004, 0, 2048 * 2);
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
-    raise(SIGIO);
+    //raise(SIGIO);
     cdma_sync(cdma_virtual_address);
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
