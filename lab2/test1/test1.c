@@ -305,6 +305,7 @@ void clk_iterate(int ps_index, int pl_index) {
            | (1 << 16) // bit 23:16 is divisor 1
            | (divisor << 8); // bit 15:0 is clock divisor 0
     munmap(clk_reg, 0x1000);
+    (void) close(dh);
     //printf("PL switched to clock %f MHz with index %i\n", pl_clk, pl_index);
 }
 
@@ -315,7 +316,7 @@ void clk_iterate(int ps_index, int pl_index) {
 void sigio_signal_handler(int signo) {
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
-    printf("sigio_signal_handler called (signo=%d)\n", signo);
+    //printf("sigio_signal_handler called (signo=%d)\n", signo);
     /* -------------------------------------------------------------------------
      * Set global flag
      */
@@ -437,7 +438,7 @@ int main(int argc, char *argv[]) {
             perror("fcntl() SETFL failed\n");
             return -1;
         }
-
+        (void) close(dma_dev_fd);
 
 
         for (int ps_i = 0; ps_i < 3; ++ps_i) {
@@ -529,12 +530,11 @@ int main(int argc, char *argv[]) {
                 munmap(BRAM_virtual_address, 8192);
                 // calls shell script to compare results
                 //system("./sha_comp.sh");
-
+                (void ) close(dh);
             }
         }
-        printf("%i ", loop_flag);
+        //printf("%i ", loop_flag);
         //assert(sigio_signal_count == loop_count - loop_flag);   // Critical assertion!!
-
     }
     (void) close(dma_dev_fd);
 
