@@ -104,7 +104,7 @@ int cdma_sync(unsigned int *dma_virtual_address) {
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
     (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-    //printf("outside suspend\n");
+    printf("outside suspend\n");
 
 }
 
@@ -129,22 +129,22 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     // assert timer_enable
     pm(0xa0050004, 2, 2048 * 2);
     // transfer FFFC to b002
-    cdma_sync(cdma_virtual_address);
+    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
+    cdma_sync(cdma_virtual_address);
     //raise(SIGIO);
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
     // transder b002 to 2000
+    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
     dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
     // store total counts
     clk_counts = dm(0xa0050008,2048*2) * 4;
     // deassert timer_enable
     pm(0xa0050004, 0, 2048 * 2);
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
     //raise(SIGIO);
     cdma_sync(cdma_virtual_address);
