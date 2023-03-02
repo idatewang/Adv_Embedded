@@ -83,28 +83,28 @@ unsigned int dma_get(unsigned int *dma_virtual_address, int offset) {
 */
 
 int cdma_sync(unsigned int *dma_virtual_address) {
-    unsigned int status = dma_get(dma_virtual_address, CDMASR);
-    if ((status & 0x40) != 0) {
-        unsigned int desc = dma_get(dma_virtual_address, CURDESC_PNTR);
-        printf("error address : %X\n", desc);
-    }
-    while (!(status & 1 << 1)) {
-        status = dma_get(dma_virtual_address, CDMASR);
-    }
+//    unsigned int status = dma_get(dma_virtual_address, CDMASR);
+//    if ((status & 0x40) != 0) {
+//        unsigned int desc = dma_get(dma_virtual_address, CURDESC_PNTR);
+//        printf("error address : %X\n", desc);
+//    }
+//    while (!(status & 1 << 1)) {
+//        status = dma_get(dma_virtual_address, CDMASR);
+//    }
     /* ---------------------------------------------------------------------
      * Wait for SIGIO signal handler to be executed.
      */
-//    printf("inside cdma_sync\n");
-////
-//    if (sigio_signal_processed == 0) {
+    printf("inside cdma_sync\n");
 //
-//        rc = sigsuspend(&signal_mask_most);
-//
-//        /* Confirm we are coming out of suspend mode correcly */
-//        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
-//    }
-//    (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-//    printf("outside suspend\n");
+    if (sigio_signal_processed == 0) {
+
+        rc = sigsuspend(&signal_mask_most);
+
+        /* Confirm we are coming out of suspend mode correcly */
+        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
+    }
+    (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
+    printf("outside suspend\n");
 
 }
 
