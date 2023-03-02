@@ -83,28 +83,28 @@ unsigned int dma_get(unsigned int *dma_virtual_address, int offset) {
 */
 
 int cdma_sync(unsigned int *dma_virtual_address) {
-//    unsigned int status = dma_get(dma_virtual_address, CDMASR);
-//    if ((status & 0x40) != 0) {
-//        unsigned int desc = dma_get(dma_virtual_address, CURDESC_PNTR);
-//        printf("error address : %X\n", desc);
-//    }
-//    while (!(status & 1 << 1)) {
-//        status = dma_get(dma_virtual_address, CDMASR);
-//    }
+    unsigned int status = dma_get(dma_virtual_address, CDMASR);
+    if ((status & 0x40) != 0) {
+        unsigned int desc = dma_get(dma_virtual_address, CURDESC_PNTR);
+        printf("error address : %X\n", desc);
+    }
+    while (!(status & 1 << 1)) {
+        status = dma_get(dma_virtual_address, CDMASR);
+    }
     /* ---------------------------------------------------------------------
      * Wait for SIGIO signal handler to be executed.
      */
-    printf("inside cdma_sync\n");
+//    printf("inside cdma_sync\n");
+////
+//    if (sigio_signal_processed == 0) {
 //
-    if (sigio_signal_processed == 0) {
-
-        rc = sigsuspend(&signal_mask_most);
-
-        /* Confirm we are coming out of suspend mode correcly */
-        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
-    }
-    (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-    printf("outside suspend\n");
+//        rc = sigsuspend(&signal_mask_most);
+//
+//        /* Confirm we are coming out of suspend mode correcly */
+//        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
+//    }
+//    (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
+//    printf("outside suspend\n");
 
 }
 
@@ -317,7 +317,7 @@ void clk_iterate(int ps_index, int pl_index) {
 void sigio_signal_handler(int signo) {
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
-    //printf("sigio_signal_handler called (signo=%d)\n", signo);
+    printf("sigio_signal_handler called (signo=%d)\n", signo);
     /* -------------------------------------------------------------------------
      * Set global flag
      */
