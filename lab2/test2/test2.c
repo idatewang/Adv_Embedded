@@ -107,6 +107,7 @@ void cdma_sync() {
     /* ---------------------------------------------------------------------
  * Take a start timestamp for interrupt latency measurement
  */
+    printf("inside cdma\n");
     pm(0xa0050004, 3, 2048 * 2);
     (void) gettimeofday(&start_timestamp, NULL);
     if (sigio_signal_processed == 0) {
@@ -117,7 +118,7 @@ void cdma_sync() {
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
     (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-    //printf("outside while\n");
+    printf("outside while\n");
 }
 
 /***************************  MEMDUMP ************************************
@@ -297,7 +298,7 @@ void clk_iterate(int ps_index, int pl_index) {
 void sigio_signal_handler(int signo) {
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
-    //printf("sigio_signal_handler called (signo=%d)\n", signo);
+    printf("sigio_signal_handler called (signo=%d)\n", signo);
     /* -------------------------------------------------------------------------
      * Set global flag
      */
