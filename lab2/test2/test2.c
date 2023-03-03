@@ -1,7 +1,7 @@
 /*
  * Duo Wang
  * dw28746
- * 2/5/2023
+ * 3/2/2023
  * Derived from dma_ocm_test.c
 */
 
@@ -52,6 +52,23 @@
 #define BTT                 0x28
 #define uint32_t unsigned int
 /* -------------------------------------------------------------------------------
+ * Device path name for the dma device
+ */
+#define GPIO_DEV_PATH    "/dev/gpio_int"
+
+// global variables
+int ps_range[] = {45, 30, 25};
+int pl_range[] = {5, 8, 15};
+int number = 2048 * 4;
+int loop_count;
+volatile int sigio_signal_count = 0;
+
+/* -------------------------------------------------------------------------------
+ * File descriptor for dma device
+ */
+int gpio_dev_fd = -1;
+
+/* -------------------------------------------------------------------------------
  *      Flag to indicate that a SIGIO signal has been processed
  */
 static volatile sig_atomic_t sigio_signal_processed = 0;
@@ -86,34 +103,17 @@ unsigned int dma_get(unsigned int *dma_virtual_address, int offset) {
 * with interrupt capability
 */
 
-int cdma_sync(unsigned int *dma_virtual_address) {
-//    unsigned int status = dma_get(dma_virtual_address, CDMASR);
-//    if ((status & 0x40) != 0) {
-//        unsigned int desc = dma_get(dma_virtual_address, CURDESC_PNTR);
-//        printf("error address : %X\n", desc);
-//    }
-//    while (!(status & 1 << 1)) {
-//        status = dma_get(dma_virtual_address, CDMASR);
-//    }
-    //printf("inside cdma_sync\n");
-//    if (sigio_signal_processed == 0) {
-//        printf("inside suspend\n");
-//
-//        rc = sigsuspend(&signal_mask_most);
-//
-//        /* Confirm we are coming out of suspend mode correcly */
-//        assert(rc == -1 && errno == EINTR && sigio_signal_processed);
-//    }
+void cdma_sync() {
     /* ---------------------------------------------------------------------
  * Take a start timestamp for interrupt latency measurement
  */
-    pm(0xa0050004, 1, 2048 * 2);
+    pm(0xa0050004, 3, 2048 * 2);
     (void) gettimeofday(&start_timestamp, NULL);
     if (sigio_signal_processed == 0) {
 
         rc = sigsuspend(&signal_mask_most);
 
-        /* Confirm we are coming out of suspend mode correcly */
+        /* Confirm we are coming out of suspend mode correctly */
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
     (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
@@ -138,55 +138,35 @@ void memdump(void *virtual_address, int byte_count) {
 */
 
 void transfer(unsigned int *cdma_virtual_address, int length) {
-    int total_count = 0;
-    // turn interrupt flag off before transfer
-    sigio_signal_processed = 0;
     // assert timer_enable
     pm(0xa0050004, 2, 2048 * 2);
+    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     // transfer FFFC to b002
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
     // wait for interrupt to be handled, counted and dropped the flag
-    cdma_sync(cdma_virtual_address);
-    // assert timer_enable
-    pm(0xa0050004, 2, 2048 * 2);
-    dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
+    cdma_sync();
     // turn interrupt flag off before transfer
     sigio_signal_processed = 0;
+    dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
+    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     // transder b002 to 2000
     dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
     dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     dma_set(cdma_virtual_address, BTT, length * 4);
     // deassert timer_enable
     pm(0xa0050004, 0, 2048 * 2);
     // wait for interrupt to be handled, counted and dropped the flag
-    cdma_sync(cdma_virtual_address);
+    cdma_sync();
+    // turn interrupt flag off before transfer
+    sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
-    // print total counts
-    //printf("3. total count counted in 250 MHz: %d\n", total_count);
 }
 
 /**************************************************************************
                                 MAIN
 **************************************************************************/
-int ps_range[] = {45, 30, 25};
-int pl_range[] = {5, 8, 15};
-int number = 2048 * 4;
-int loop_count;
-
-volatile int sigio_signal_count = 0;
-/* -------------------------------------------------------------------------------
- * Device path name for the dma device
- */
-#define GPIO_DEV_PATH    "/dev/gpio_int"
-
-/* -------------------------------------------------------------------------------
- * File descriptor for dma device
- */
-int gpio_dev_fd = -1;
 /* ---------------------------------------------------------------
 * sqrt routine
 */
@@ -254,27 +234,21 @@ void compute_interrupt_latency_stats(
 }
 
 void clk_iterate(int ps_index, int pl_index) {
-    double ps_clk;
-    double pl_clk;
     // PS clk:
 
     // get ps_range, if else for APLL_CTRL and APLL_CFG, ps_clk
     int APLL_CTRL;
     int APLL_CFG;
     if (ps_index == 0) {
-        ps_clk = 1499;
         APLL_CTRL = ps_range[ps_index] << 8;
         APLL_CFG = (3 << 5) + 12 + (3 << 10) + (63 << 25) + (825 << 13);
     } else if (ps_index == 1) {
-        ps_clk = 1000;
         APLL_CTRL = ps_range[ps_index] << 8;
         APLL_CFG = (4 << 5) + 6 + (3 << 10) + (63 << 25) + (1000 << 13);
     } else if (ps_index == 2) {
-        ps_clk = 416.6;
         APLL_CTRL = (ps_range[ps_index] << 8) + (1 << 16);
         APLL_CFG = (3 << 5) + 10 + (3 << 10) + (63 << 25) + (1000 << 13);
     } else {
-        ps_clk = 1499;
         APLL_CTRL = ps_range[ps_index] << 8;
         APLL_CFG = (3 << 5) + 12 + (3 << 10) + (63 << 25) + (825 << 13);
     }
@@ -309,20 +283,11 @@ void clk_iterate(int ps_index, int pl_index) {
     int divisor;
     // get pl_range, if else for pl_clk
     divisor = pl_range[pl_index];
-    if (pl_index == 0) {
-        pl_clk = 300;
-    } else if (pl_index == 1) {
-        pl_clk = 187.5;
-    } else if (pl_index == 2) {
-        pl_clk = 100;
-    } else {
-        pl_clk = 300;
-    }
     *pl0 = (1 << 24) // bit 24 enables clock
            | (1 << 16) // bit 23:16 is divisor 1
            | (divisor << 8); // bit 15:0 is clock divisor 0
     munmap(clk_reg, 0x1000);
-    //printf("PL switched to clock %f MHz with index %i\n", pl_clk, pl_index);
+    (void) close(dh);
 }
 
 /* -----------------------------------------------------------------------------
@@ -341,7 +306,6 @@ void sigio_signal_handler(int signo) {
  * Take end timestamp for interrupt latency measurement
  */
     (void) gettimeofday(&sigio_signal_timestamp, NULL);
-
 }
 
 int main(int argc, char *argv[]) {
@@ -353,14 +317,6 @@ int main(int argc, char *argv[]) {
         loop_count = loop_flag;
         number = strtoul(argv[2], 0, 0) * 4;
     }
-    // for lab 2 testing
-    if (argc == 2) {
-        count = 1;
-        loop_flag = count;
-        loop_count = loop_flag;
-        number = strtoul(argv[1], 0, 0) * 4;
-    }
-
     srand(time(0));         // Seed the random number generator
     int latency_0_0[loop_flag];
     int latency_0_1[loop_flag];
@@ -371,62 +327,61 @@ int main(int argc, char *argv[]) {
     int latency_2_0[loop_flag];
     int latency_2_1[loop_flag];
     int latency_2_2[loop_flag];
+
+    // interrupt part
+    /* --------------------------------------------------------------------------
+    *      Register signal handler for SIGIO signal:
+    */
+    struct sigaction sig_action;
+    memset(&sig_action, 0, sizeof sig_action);
+    sig_action.sa_handler = sigio_signal_handler;
+    /* --------------------------------------------------------------------------
+     *      Block all signals while our signal handler is executing:
+     */
+    (void) sigfillset(&sig_action.sa_mask);
+    rc = sigaction(SIGIO, &sig_action, NULL);
+    if (rc == -1) {
+        perror("sigaction() failed");
+        return -1;
+    }
+    /* -------------------------------------------------------------------------
+     *      Open the device file
+     */
+    gpio_dev_fd = open(GPIO_DEV_PATH, O_RDWR);
+    if (gpio_dev_fd == -1) {
+        perror("open() of " GPIO_DEV_PATH " failed");
+        return -1;
+    }
+    /* -------------------------------------------------------------------------
+     * Set our process to receive SIGIO signals from the dma device:
+     */
+    rc = fcntl(gpio_dev_fd, F_SETOWN, getpid());
+    if (rc == -1) {
+        perror("fcntl() SETOWN failed\n");
+        return -1;
+    }
+    /* -------------------------------------------------------------------------
+     * Enable reception of SIGIO signals for the gpio_dev_fd descriptor
+     */
+    int fd_flags = fcntl(gpio_dev_fd, F_GETFL);
+    rc = fcntl(gpio_dev_fd, F_SETFL, fd_flags | O_ASYNC);
+    if (rc == -1) {
+        perror("fcntl() SETFL failed\n");
+        return -1;
+    }
+
+    // main loop
     while (loop_flag) {
         if (count > 0) {
             count -= 1;
             loop_flag -= 1;
         }
-
-
-
         for (int ps_i = 0; ps_i < 3; ++ps_i) {
             for (int pl_i = 0; pl_i < 3; ++pl_i) {
-                // interrupt part
-                /* --------------------------------------------------------------------------
-                *      Register signal handler for SIGIO signal:
-                */
-                struct sigaction sig_action;
-                memset(&sig_action, 0, sizeof sig_action);
-                sig_action.sa_handler = sigio_signal_handler;
-                /* --------------------------------------------------------------------------
-                 *      Block all signals while our signal handler is executing:
-                 */
-                (void) sigfillset(&sig_action.sa_mask);
-                rc = sigaction(SIGIO, &sig_action, NULL);
-                if (rc == -1) {
-                    perror("sigaction() failed");
-                    return -1;
-                }
-                /* -------------------------------------------------------------------------
-                 *      Open the device file
-                 */
-                gpio_dev_fd = open(GPIO_DEV_PATH, O_RDWR);
-                if (gpio_dev_fd == -1) {
-                    perror("open() of " GPIO_DEV_PATH " failed");
-                    return -1;
-                }
-                /* -------------------------------------------------------------------------
-                 * Set our process to receive SIGIO signals from the dma device:
-                 */
-                rc = fcntl(gpio_dev_fd, F_SETOWN, getpid());
-                if (rc == -1) {
-                    perror("fcntl() SETOWN failed\n");
-                    return -1;
-                }
-                /* -------------------------------------------------------------------------
-                 * Enable reception of SIGIO signals for the gpio_dev_fd descriptor
-                 */
-                int fd_flags = fcntl(gpio_dev_fd, F_GETFL);
-                rc = fcntl(gpio_dev_fd, F_SETFL, fd_flags | O_ASYNC);
-                if (rc == -1) {
-                    perror("fcntl() SETFL failed\n");
-                    return -1;
-                }
                 /* ---------------------------------------------------------------------
                  * NOTE: This next section of code must be excuted each cycle to prevent
                  * a race condition between the SIGIO signal handler and sigsuspend()
                  */
-
                 (void) sigfillset(&signal_mask);
                 (void) sigfillset(&signal_mask_most);
                 (void) sigdelset(&signal_mask_most, SIGIO);
@@ -467,9 +422,6 @@ int main(int argc, char *argv[]) {
                 dma_set(cdma_virtual_address, CDMACR, 0x0004);
                 // generate random clocks
                 clk_iterate(ps_i, pl_i);
-                // sleep from piazza
-                //printf("Sleeping...\n");
-                //sleep(1);
                 // transfer starts
                 //printf("Transfer starts...\n");
                 transfer(cdma_virtual_address, 2048);
@@ -536,12 +488,9 @@ int main(int argc, char *argv[]) {
                 munmap(BRAM_virtual_address, 8192);
                 // calls shell script to compare results
                 //system("./sha_comp.sh");
-
+                (void) close(dh);
             }
         }
-        printf("%i ", loop_flag);
-        //assert(sigio_signal_count == loop_count - loop_flag);   // Critical assertion!!
-
     }
     (void) close(gpio_dev_fd);
 
@@ -573,7 +522,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2/9);
+           sigio_signal_count);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -596,7 +545,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2/9);
+           sigio_signal_count);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -619,7 +568,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2/9);
+           sigio_signal_count);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -642,7 +591,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2/9);
+           sigio_signal_count);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -665,7 +614,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2/9);
+           sigio_signal_count);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -688,7 +637,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2/9);
+           sigio_signal_count);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -711,7 +660,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2/9);
+           sigio_signal_count);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -734,7 +683,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2/9);
+           sigio_signal_count);
 
     compute_interrupt_latency_stats(
             &min_latency,
@@ -757,7 +706,7 @@ int main(int argc, char *argv[]) {
            average_latency,
            std_deviation,
            loop_count,
-           sigio_signal_count/2/9);
+           sigio_signal_count);
 
     return 0;
 }

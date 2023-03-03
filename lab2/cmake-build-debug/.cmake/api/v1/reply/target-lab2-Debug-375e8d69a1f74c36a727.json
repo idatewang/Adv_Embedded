@@ -94,7 +94,7 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "test1.c",
+			"path" : "test2/test2.c",
 			"sourceGroupIndex" : 0
 		}
 	],

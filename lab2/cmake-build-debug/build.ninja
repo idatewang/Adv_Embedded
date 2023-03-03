@@ -46,11 +46,11 @@ cmake_ninja_workdir = /Users/idatewang/Documents/ADV/lab2/cmake-build-debug/
 
 build cmake_object_order_depends_target_lab2: phony || CMakeFiles/lab2.dir
 
-build CMakeFiles/lab2.dir/test1.c.o: C_COMPILER__lab2_Debug /Users/idatewang/Documents/ADV/lab2/test1.c || cmake_object_order_depends_target_lab2
-  DEP_FILE = CMakeFiles/lab2.dir/test1.c.o.d
+build CMakeFiles/lab2.dir/test2/test2.c.o: C_COMPILER__lab2_Debug /Users/idatewang/Documents/ADV/lab2/test2/test2.c || cmake_object_order_depends_target_lab2
+  DEP_FILE = CMakeFiles/lab2.dir/test2/test2.c.o.d
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.1.sdk -fcolor-diagnostics -std=gnu11
   OBJECT_DIR = CMakeFiles/lab2.dir
-  OBJECT_FILE_DIR = CMakeFiles/lab2.dir
+  OBJECT_FILE_DIR = CMakeFiles/lab2.dir/test2
 
 
 # =============================================================================
@@ -60,7 +60,7 @@ build CMakeFiles/lab2.dir/test1.c.o: C_COMPILER__lab2_Debug /Users/idatewang/Doc
 #############################################
 # Link the executable lab2
 
-build lab2: C_EXECUTABLE_LINKER__lab2_Debug CMakeFiles/lab2.dir/test1.c.o
+build lab2: C_EXECUTABLE_LINKER__lab2_Debug CMakeFiles/lab2.dir/test2/test2.c.o
   FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX13.1.sdk
   OBJECT_DIR = CMakeFiles/lab2.dir
   POST_BUILD = :

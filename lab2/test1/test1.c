@@ -281,7 +281,6 @@ void clk_iterate(int ps_index, int pl_index) {
            | (divisor << 8); // bit 15:0 is clock divisor 0
     munmap(clk_reg, 0x1000);
     (void) close(dh);
-    //printf("PL switched to clock %f MHz with index %i\n", pl_clk, pl_index);
 }
 
 /* -----------------------------------------------------------------------------
