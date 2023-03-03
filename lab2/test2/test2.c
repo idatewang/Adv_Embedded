@@ -388,44 +388,8 @@ int main(int argc, char *argv[]) {
                 (void) sigdelset(&signal_mask_most, SIGIO);
                 (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old);
 
-                // transfer part
-                // Open /dev/mem which represents the whole physical memory
-                int dh = open("/dev/mem", O_RDWR | O_SYNC);
-                if (dh == -1) {
-                    printf("Unable to open /dev/mem.  Ensure it exists (major=1, minor=1)\n");
-                    printf("Must be root to run this routine.\n");
-                    return -1;
-                }
-                // Memory map AXI Lite register block
-                uint32_t *cdma_virtual_address = mmap(NULL,
-                                                      8192,
-                                                      PROT_READ | PROT_WRITE,
-                                                      MAP_SHARED,
-                                                      dh,
-                                                      CDMA);
-                uint32_t *BRAM_virtual_address = mmap(NULL,
-                                                      8192,
-                                                      PROT_READ | PROT_WRITE,
-                                                      MAP_SHARED,
-                                                      dh,
-                                                      BRAM_PS);
-                uint32_t *ocm = mmap(NULL, 65536, PROT_READ | PROT_WRITE, MAP_SHARED, dh, OCM);
-                //printf("OCM virtual address = 0x%.8x\n", ocm);
-                // Setup data to be transferred
-                uint32_t c[2048] = {};
-                for (int i = 0; i < 2048; ++i) {
-                    c[i] = rand();
-                }
-                // Setup data in OCM to be transferred to the BRAM
-                for (int i = 0; i < 2048; i++)
-                    ocm[i] = c[i];
-                // RESET DMA
-                dma_set(cdma_virtual_address, CDMACR, 0x0004);
-                // generate random clocks
                 clk_iterate(ps_i, pl_i);
-                // transfer starts
-                //printf("Transfer starts...\n");
-                transfer(cdma_virtual_address, 2048);
+                cdma_sync();
                 if (ps_i == 0 && pl_i == 0){
                     latency_0_0[loop_flag] = (sigio_signal_timestamp.tv_sec -
                                               start_timestamp.tv_sec) * 1000000 +
@@ -472,24 +436,6 @@ int main(int argc, char *argv[]) {
                                              (sigio_signal_timestamp.tv_usec -
                                               start_timestamp.tv_usec);
                 }
-                // check results
-                for (int i = 0; i < 2048; i++) {
-                    if (BRAM_virtual_address[i] != c[i]) {
-                        printf("RAM result: 0x%.8x and c result is 0x%.8x  element %d\n",
-                               BRAM_virtual_address[i], c[i], i);
-                        printf("test failed!!\n");
-                        munmap(ocm, 65536);
-                        munmap(cdma_virtual_address, 8192);
-                        munmap(BRAM_virtual_address, 8192);
-                        return -1;
-                    }
-                }
-                munmap(ocm, 65536);
-                munmap(cdma_virtual_address, 8192);
-                munmap(BRAM_virtual_address, 8192);
-                // calls shell script to compare results
-                //system("./sha_comp.sh");
-                (void) close(dh);
             }
         }
     }
