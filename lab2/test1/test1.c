@@ -61,7 +61,7 @@ int ps_range[] = {45, 30, 25};
 int pl_range[] = {5, 8, 15};
 int number = 2048 * 4;
 int loop_count;
-int clk_counts;
+int clk_counts = 0;
 volatile int sigio_signal_count = 0;
 /* -------------------------------------------------------------------------------
  * File descriptor for dma device
@@ -128,15 +128,20 @@ void memdump(void *virtual_address, int byte_count) {
 */
 
 void transfer(unsigned int *cdma_virtual_address, int length) {
-    // assert timer_enable
-    pm(0xa0050004, 2, 2048 * 2);
+    clk_counts = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     // transfer FFFC to b002
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
     dma_set(cdma_virtual_address, SA, OCM);         // Write source address
+    // assert timer_enable
+    pm(0xa0050004, 2, 2048 * 2);
     dma_set(cdma_virtual_address, BTT, length * 4);
     // waits for interrupt form cdma
     cdma_sync();
+    // store timer total counts
+    clk_counts += dm(0xa0050008, 2048 * 2) * 4;
+    // deassert timer_enable
+    pm(0xa0050004, 0, 2048 * 2);
     // turn off the signal flag
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
@@ -144,13 +149,15 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     // transfer b002 to 2000
     dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
     dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
-    // store timer total counts
-    clk_counts = dm(0xa0050008, 2048 * 2) * 4;
-    // deassert timer_enable
-    pm(0xa0050004, 0, 2048 * 2);
+    // assert timer_enable
+    pm(0xa0050004, 2, 2048 * 2);
     dma_set(cdma_virtual_address, BTT, length * 4);
     // waits for interrupt form cdma
     cdma_sync();
+    // store timer total counts
+    clk_counts += dm(0xa0050008, 2048 * 2) * 4;
+    // deassert timer_enable
+    pm(0xa0050004, 0, 2048 * 2);
     // turn off the signal flag
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
