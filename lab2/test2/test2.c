@@ -108,7 +108,7 @@ void cdma_sync() {
  * Take a start timestamp for interrupt latency measurement
  */
     printf("inside cdma\n");
-    pm(0xa0050004, 3, 2048 * 2);
+    pm(0xa0050004, 1, 2048 * 2);
     (void) gettimeofday(&start_timestamp, NULL);
     if (sigio_signal_processed == 0) {
 
@@ -139,8 +139,6 @@ void memdump(void *virtual_address, int byte_count) {
 */
 
 void transfer(unsigned int *cdma_virtual_address, int length) {
-    // assert timer_enable
-    pm(0xa0050004, 2, 2048 * 2);
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     // transfer FFFC to b002
     dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
@@ -148,20 +146,20 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, BTT, length * 4);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync();
-    // turn interrupt flag off before transfer
+    // turn interrupt flag off before transfer, clear pin out
     sigio_signal_processed = 0;
+    pm(0xa0050004, 0, 2048 * 2);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
     dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
     // transder b002 to 2000
     dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
     dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
     dma_set(cdma_virtual_address, BTT, length * 4);
-    // deassert timer_enable
-    pm(0xa0050004, 0, 2048 * 2);
     // wait for interrupt to be handled, counted and dropped the flag
     cdma_sync();
-    // turn interrupt flag off before transfer
+    // turn interrupt flag off before transfer, clear pin out
     sigio_signal_processed = 0;
+    pm(0xa0050004, 0, 2048 * 2);
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
 }
 
@@ -370,6 +368,8 @@ int main(int argc, char *argv[]) {
         perror("fcntl() SETFL failed\n");
         return -1;
     }
+    // clear interrupt_out pin
+    pm(0xa0050004, 0, 2048 * 2);
 
     // main loop
     while (loop_flag) {
