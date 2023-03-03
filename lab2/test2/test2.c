@@ -118,6 +118,9 @@ void cdma_sync() {
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
     (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
+    // turn interrupt flag off before transfer, clear pin out
+    sigio_signal_processed = 0;
+    pm(0xa0050004, 0, 2048 * 2);
     printf("outside while\n");
 }
 
