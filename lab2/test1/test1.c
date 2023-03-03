@@ -1,7 +1,7 @@
 /*
  * Duo Wang
  * dw28746
- * 3/2/2023
+ * 3/3/2023
  * Derived from lab 1 test3.c
 */
 
@@ -145,7 +145,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
     dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
     // store timer total counts
-    clk_counts = dm(0xa0050008,2048*2) * 4;
+    clk_counts = dm(0xa0050008, 2048 * 2) * 4;
     // deassert timer_enable
     pm(0xa0050004, 0, 2048 * 2);
     dma_set(cdma_virtual_address, BTT, length * 4);
@@ -223,7 +223,6 @@ void compute_interrupt_latency_stats(
     *average_latency_p = average;
     *std_deviation_p = std_deviation;
 }
-
 
 
 void clk_iterate(int ps_index, int pl_index) {
@@ -414,23 +413,23 @@ int main(int argc, char *argv[]) {
                 // transfer starts
                 // printf("Transfer starts...\n");
                 transfer(cdma_virtual_address, 2048);
-                if (ps_i == 0 && pl_i == 0){
+                if (ps_i == 0 && pl_i == 0) {
                     latency_0_0[loop_flag] = clk_counts;
                 } else if (ps_i == 0 && pl_i == 1) {
                     latency_0_1[loop_flag] = clk_counts;
-                }else if (ps_i == 0 && pl_i == 2) {
+                } else if (ps_i == 0 && pl_i == 2) {
                     latency_0_2[loop_flag] = clk_counts;
-                }else if (ps_i == 1 && pl_i == 0) {
+                } else if (ps_i == 1 && pl_i == 0) {
                     latency_1_0[loop_flag] = clk_counts;
-                }else if (ps_i == 1 && pl_i == 1) {
+                } else if (ps_i == 1 && pl_i == 1) {
                     latency_1_1[loop_flag] = clk_counts;
-                }else if (ps_i == 1 && pl_i == 2) {
+                } else if (ps_i == 1 && pl_i == 2) {
                     latency_1_2[loop_flag] = clk_counts;
-                }else if (ps_i == 2 && pl_i == 0) {
+                } else if (ps_i == 2 && pl_i == 0) {
                     latency_2_0[loop_flag] = clk_counts;
-                }else if (ps_i == 2 && pl_i == 1) {
+                } else if (ps_i == 2 && pl_i == 1) {
                     latency_2_1[loop_flag] = clk_counts;
-                }else if (ps_i == 2 && pl_i == 2) {
+                } else if (ps_i == 2 && pl_i == 2) {
                     latency_2_2[loop_flag] = clk_counts;
                 }
                 // check results

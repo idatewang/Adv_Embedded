@@ -1,7 +1,7 @@
 /*
  * Duo Wang
  * dw28746
- * 3/2/2023
+ * 3/3/2023
  * Derived from dma_ocm_test.c
 */
 
@@ -107,7 +107,7 @@ void cdma_sync() {
     /* ---------------------------------------------------------------------
  * Take a start timestamp for interrupt latency measurement
  */
-    printf("inside cdma\n");
+    //printf("inside cdma\n");
     pm(0xa0050004, 1, 2048 * 2);
     (void) gettimeofday(&start_timestamp, NULL);
     if (sigio_signal_processed == 0) {
@@ -121,7 +121,7 @@ void cdma_sync() {
     // turn interrupt flag off before transfer, clear pin out
     sigio_signal_processed = 0;
     pm(0xa0050004, 0, 2048 * 2);
-    printf("outside while\n");
+    //printf("outside while\n");
 }
 
 /***************************  MEMDUMP ************************************
@@ -137,34 +137,6 @@ void memdump(void *virtual_address, int byte_count) {
     printf("\n");
 }
 
-/***************************  TRANSFER ************************************
-*
-*/
-
-void transfer(unsigned int *cdma_virtual_address, int length) {
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
-    // transfer FFFC to b002
-    dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
-    dma_set(cdma_virtual_address, SA, OCM);         // Write source address
-    dma_set(cdma_virtual_address, BTT, length * 4);
-    // wait for interrupt to be handled, counted and dropped the flag
-    cdma_sync();
-    // turn interrupt flag off before transfer, clear pin out
-    sigio_signal_processed = 0;
-    pm(0xa0050004, 0, 2048 * 2);
-    dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
-    // transder b002 to 2000
-    dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
-    dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
-    dma_set(cdma_virtual_address, BTT, length * 4);
-    // wait for interrupt to be handled, counted and dropped the flag
-    cdma_sync();
-    // turn interrupt flag off before transfer, clear pin out
-    sigio_signal_processed = 0;
-    pm(0xa0050004, 0, 2048 * 2);
-    dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
-}
 
 /**************************************************************************
                                 MAIN
@@ -299,7 +271,7 @@ void clk_iterate(int ps_index, int pl_index) {
 void sigio_signal_handler(int signo) {
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
-    printf("sigio_signal_handler called (signo=%d)\n", signo);
+    //printf("sigio_signal_handler called (signo=%d)\n", signo);
     /* -------------------------------------------------------------------------
      * Set global flag
      */
@@ -393,7 +365,7 @@ int main(int argc, char *argv[]) {
 
                 clk_iterate(ps_i, pl_i);
                 cdma_sync();
-                if (ps_i == 0 && pl_i == 0){
+                if (ps_i == 0 && pl_i == 0) {
                     latency_0_0[loop_flag] = (sigio_signal_timestamp.tv_sec -
                                               start_timestamp.tv_sec) * 1000000 +
                                              (sigio_signal_timestamp.tv_usec -
@@ -403,37 +375,37 @@ int main(int argc, char *argv[]) {
                                               start_timestamp.tv_sec) * 1000000 +
                                              (sigio_signal_timestamp.tv_usec -
                                               start_timestamp.tv_usec);
-                }else if (ps_i == 0 && pl_i == 2) {
+                } else if (ps_i == 0 && pl_i == 2) {
                     latency_0_2[loop_flag] = (sigio_signal_timestamp.tv_sec -
                                               start_timestamp.tv_sec) * 1000000 +
                                              (sigio_signal_timestamp.tv_usec -
                                               start_timestamp.tv_usec);
-                }else if (ps_i == 1 && pl_i == 0) {
+                } else if (ps_i == 1 && pl_i == 0) {
                     latency_1_0[loop_flag] = (sigio_signal_timestamp.tv_sec -
                                               start_timestamp.tv_sec) * 1000000 +
                                              (sigio_signal_timestamp.tv_usec -
                                               start_timestamp.tv_usec);
-                }else if (ps_i == 1 && pl_i == 1) {
+                } else if (ps_i == 1 && pl_i == 1) {
                     latency_1_1[loop_flag] = (sigio_signal_timestamp.tv_sec -
                                               start_timestamp.tv_sec) * 1000000 +
                                              (sigio_signal_timestamp.tv_usec -
                                               start_timestamp.tv_usec);
-                }else if (ps_i == 1 && pl_i == 2) {
+                } else if (ps_i == 1 && pl_i == 2) {
                     latency_1_2[loop_flag] = (sigio_signal_timestamp.tv_sec -
                                               start_timestamp.tv_sec) * 1000000 +
                                              (sigio_signal_timestamp.tv_usec -
                                               start_timestamp.tv_usec);
-                }else if (ps_i == 2 && pl_i == 0) {
+                } else if (ps_i == 2 && pl_i == 0) {
                     latency_2_0[loop_flag] = (sigio_signal_timestamp.tv_sec -
                                               start_timestamp.tv_sec) * 1000000 +
                                              (sigio_signal_timestamp.tv_usec -
                                               start_timestamp.tv_usec);
-                }else if (ps_i == 2 && pl_i == 1) {
+                } else if (ps_i == 2 && pl_i == 1) {
                     latency_2_1[loop_flag] = (sigio_signal_timestamp.tv_sec -
                                               start_timestamp.tv_sec) * 1000000 +
                                              (sigio_signal_timestamp.tv_usec -
                                               start_timestamp.tv_usec);
-                }else if (ps_i == 2 && pl_i == 2) {
+                } else if (ps_i == 2 && pl_i == 2) {
                     latency_2_2[loop_flag] = (sigio_signal_timestamp.tv_sec -
                                               start_timestamp.tv_sec) * 1000000 +
                                              (sigio_signal_timestamp.tv_usec -
