@@ -1,1 +1,0 @@
-cmd_/home/ee382n/Adv_Embedded/lab3/dma_int.ko := ld -r  -EL  -maarch64elf  --build-id=sha1  -T scripts/module.lds -o /home/ee382n/Adv_Embedded/lab3/dma_int.ko /home/ee382n/Adv_Embedded/lab3/dma_int.o /home/ee382n/Adv_Embedded/lab3/dma_int.mod.o;  true
