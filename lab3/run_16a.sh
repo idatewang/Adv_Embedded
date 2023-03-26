@@ -38,14 +38,22 @@
 
 echo "---------------------------"
 echo "Expected results
-0xb0000020 = 0xedeaaff3
-0xb0000024 = 0xf1774ad2
-0xb0000028 = 0x88867377
-0xb000002c = 0x0c6d6409
-0xb0000030 = 0x7e391bc3
-0xb0000034 = 0x62d7d6fb
-0xb0000038 = 0x34982ddf
-0xb000003c = 0x0efd18cb
+a31c9cbe
+df4c5ec3
+3dcc888a
+ce7a27a1
+ea2b6a82
+e41fc204
+4afbbbf7
+e4f8b6ff
+96dd7d83
+c0ededd5
+0385447e
+6c9bb4d0
+e6542575
+ddc165b8
+b5fa7245
+c98b10d1
 "
 
 

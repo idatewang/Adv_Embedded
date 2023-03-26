@@ -1,12 +1,12 @@
 /* -------------------------------------------------------------------
- *  dma_interrupt.c
+ *  gpio-interrupt.c
  *
  *  AUTHOR:     Mark McDermott
  *  CREATED:    March 12, 2009
  *  UPDATED:    May 2, 2017     Updated for ZED Board
  *  UPDATED:    Feb 5, 2021     Updated for the ULTRA96
  *
- *  DESCRIPTION: This kernel module registers interrupts from DMA
+ *  DESCRIPTION: This kernel module registers interrupts from GPIO
  *               port and measures the time between them. This is
  *               used to also measure the latency through the kernel
  *               to respond to interrupts. 
@@ -42,9 +42,9 @@
 
 #define MODULE_VER "1.0"
 
-#define DMA_MAJOR 236    // Need to mknod /dev/dma_int c 236 0
+#define GPIO_MAJOR 235    // Need to mknod /dev/gpio_int c 237 0
 
-#define MODULE_NM "dma_interrupt"
+#define MODULE_NM "gpio_interrupt"
 
 #undef DEBUG
 //#define DEBUG
@@ -56,34 +56,34 @@ int temp = 0;
 int len = 0;
 unsigned int gic_interrupt;
 
-static struct fasync_struct *fasync_dma_queue;
+static struct fasync_struct *fasync_gpio_queue;
 
 /* -------------------------------------------------------------------
- * function: dma_int_handler
+ * function: gpio_int_handler
  *
- * This function is the dma_interrupt handler. It sets the tv2
+ * This function is the gpio_interrupt handler. It sets the tv2
  * structure using do_gettimeofday.
  */
 
-//static irqreturn_t dma_int_handler(int irq, void *dev_id, struct pt_regs *regs)
+//static irqreturn_t gpio_int_handler(int irq, void *dev_id, struct pt_regs *regs)
 
-irq_handler_t dma_int_handler(int irq, void *dev_id, struct pt_regs *regs) {
+irq_handler_t gpio_int_handler(int irq, void *dev_id, struct pt_regs *regs) {
     interruptcount++;
 
 #ifdef DEBUG1
-    printk(KERN_INFO "dma_int: Interrupt detected in kernel \n");  // DEBUG
+    printk(KERN_INFO "gpio_int: Interrupt detected in kernel \n");  // DEBUG
 #endif
 
     /* Signal the user application that an interupt occured */
 
-    kill_fasync(&fasync_dma_queue, SIGIO, POLL_IN);
+    kill_fasync(&fasync_gpio_queue, SIGIO, POLL_IN);
 
     return (irq_handler_t) IRQ_HANDLED;
 
 }
 
 
-static struct proc_dir_entry *proc_dma_int;
+static struct proc_dir_entry *proc_gpio_int;
 
 /* -----------------------------------------------------------------------------------
 *    function: read_proc   --- Example code
@@ -110,38 +110,38 @@ ssize_t write_proc(struct file *filp, const char *buf, size_t count, loff_t *off
 }
 
 /* -----------------------------------------------------------------------------------
- * function: dma_open
+ * function: gpio_open
  *
- * This function is called when the dma_int device is opened
+ * This function is called when the gpio_int device is opened
  *
  */
 
-static int dma_open(struct inode *inode, struct file *file) {
+static int gpio_open(struct inode *inode, struct file *file) {
 
 #ifdef DEBUG
-    printk(KERN_INFO "dma_int: Inside dma_open \n");  // DEBUG
+    printk(KERN_INFO "gpio_int: Inside gpio_open \n");  // DEBUG
 #endif
     return 0;
 }
 
 /* ------------------------------------------------------------------
- * function: dma_release
+ * function: gpio_release
  *
- * This function is called when the dma_int device is
+ * This function is called when the gpio_int device is
  * released
  *
  */
 
-static int dma_release(struct inode *inode, struct file *file) {
+static int gpio_release(struct inode *inode, struct file *file) {
 
 #ifdef DEBUG
-    printk(KERN_INFO "\ndma_int: Inside dma_release \n");  // DEBUG
+    printk(KERN_INFO "\ngpio_int: Inside gpio_release \n");  // DEBUG
 #endif
     return 0;
 }
 
 /* -------------------------------------------------------------------
- * function: dma_fasync
+ * function: gpio_fasync
  *
  * This is invoked by the kernel when the user program opens this
  * input device and issues fcntl(F_SETFL) on the associated file
@@ -149,12 +149,12 @@ static int dma_release(struct inode *inode, struct file *file) {
  * kill_fasync(), a SIGIO is dispatched to the owning application.
  */
 
-static int dma_fasync(int fd, struct file *filp, int on) {
+static int gpio_fasync(int fd, struct file *filp, int on) {
 #ifdef DEBUG
-    printk(KERN_INFO "\ndma_int: Inside dma_fasync \n");  // DEBUG
+    printk(KERN_INFO "\ngpio_int: Inside gpio_fasync \n");  // DEBUG
 #endif
 
-    return fasync_helper(fd, filp, on, &fasync_dma_queue);
+    return fasync_helper(fd, filp, on, &fasync_gpio_queue);
 };
 
 /* -------------------------------------------------------------------
@@ -163,7 +163,7 @@ static int dma_fasync(int fd, struct file *filp, int on) {
 *
 */
 
-struct file_operations dma_fops = {
+struct file_operations gpio_fops = {
         .owner          =    THIS_MODULE,
         .llseek         =    NULL,
         .read           =    NULL,
@@ -171,11 +171,11 @@ struct file_operations dma_fops = {
         .poll           =    NULL,
         .unlocked_ioctl =    NULL,
         .mmap           =    NULL,
-        .open           =    dma_open,
+        .open           =    gpio_open,
         .flush          =    NULL,
-        .release        =    dma_release,
+        .release        =    gpio_release,
         .fsync          =    NULL,
-        .fasync         =    dma_fasync,
+        .fasync         =    gpio_fasync,
         .lock           =    NULL,
         .read           =    NULL,
         .write          =    NULL,
@@ -186,23 +186,23 @@ struct proc_ops proc_fops = {
 };
 
 
-static const struct of_device_id zynq_dma_of_match[] = {
-        {.compatible = "xlnx,axi-cdma"},
+static const struct of_device_id zynq_gpio_of_match[] = {
+        {.compatible = "xlnx,ctmr-intout"},
         { /* end of table */ }
 };
 
-MODULE_DEVICE_TABLE(of, zynq_dma_of_match
+MODULE_DEVICE_TABLE(of, zynq_gpio_of_match
 );
 
 
 /* -------------------------------------------------------------------
  *
- * zynq_dma_probe - Initialization method for a zynq_dma device
+ * zynq_gpio_probe - Initialization method for a zynq_gpio device
  *
  * Return: 0 on success, negative error otherwise.
  */
 
-static int zynq_dma_probe(struct platform_device *pdev) {
+static int zynq_gpio_probe(struct platform_device *pdev) {
     struct resource *res;
 
     printk("In probe funtion\n");
@@ -227,78 +227,78 @@ static int zynq_dma_probe(struct platform_device *pdev) {
 
 /* -------------------------------------------------------------------
  *
- * zynq_dma_remove - Driver removal function
+ * zynq_gpio_remove - Driver removal function
  *
  * Return: 0 always
  */
 
-static int zynq_dma_remove(struct platform_device *pdev) {
-    //struct zynq_dma *dma = platform_get_drvdata(pdev)
+static int zynq_gpio_remove(struct platform_device *pdev) {
+    //struct zynq_gpio *gpio = platform_get_drvdata(pdev)
 
     return 0;
 }
 
 
-static struct platform_driver zynq_dma_driver = {
+static struct platform_driver zynq_gpio_driver = {
         .driver    = {
                 .name = MODULE_NM,
-                .of_match_table = zynq_dma_of_match,
+                .of_match_table = zynq_gpio_of_match,
         },
-        .probe = zynq_dma_probe,
-        .remove = zynq_dma_remove,
+        .probe = zynq_gpio_probe,
+        .remove = zynq_gpio_remove,
 };
 
 
 /* -------------------------------------------------------------------
- * function: init_dma_int
+ * function: init_gpio_int
  *
- * This function creates the /proc directory entry dma_interrupt.
+ * This function creates the /proc directory entry gpio_interrupt.
  */
 
 static int __init
 
-init_dma_int(void) {
+init_gpio_int(void) {
 
     int rv = 0;
     int err = 0;
 
-    //platform_driver_unregister(&zynq_dma_driver);
+    //platform_driver_unregister(&zynq_gpio_driver);
 
 
-    printk("Ultra96 dma Interrupt Module\n");
-    printk("Ultra96 dma Interrupt Driver Loading.\n");
-    printk("Using Major Number %d on %s\n", DMA_MAJOR, MODULE_NM);
+    printk("Ultra96 GPIO Interrupt Module\n");
+    printk("Ultra96 GPIO Interrupt Driver Loading.\n");
+    printk("Using Major Number %d on %s\n", GPIO_MAJOR, MODULE_NM);
 
-    err = platform_driver_register(&zynq_dma_driver);
+    err = platform_driver_register(&zynq_gpio_driver);
 
     if (err != 0) printk("Driver register error with number %d\n", err);
     else printk("Driver registered with no error\n");
 
-    if (register_chrdev(DMA_MAJOR, MODULE_NM, &dma_fops)) {
-        printk("dma_int: unable to get major %d. ABORTING!\n", DMA_MAJOR);
-        goto no_dma_interrupt;
+    if (register_chrdev(GPIO_MAJOR, MODULE_NM, &gpio_fops)) {
+        printk("gpio_int: unable to get major %d. ABORTING!\n", GPIO_MAJOR);
+        goto no_gpio_interrupt;
     }
 
-    proc_dma_int = proc_create("dma_interrupt", 0444, NULL, &proc_fops);
+    proc_gpio_int = proc_create("gpio_interrupt", 0444, NULL, &proc_fops);
     // msg=kmalloc(GFP_KERNEL,10*sizeof(char));
 
-    if (proc_dma_int == NULL) {
-        printk("dma_int: create /proc entry returned NULL. ABORTING!\n");
-        goto no_dma_interrupt;
+    if (proc_gpio_int == NULL) {
+        printk("gpio_int: create /proc entry returned NULL. ABORTING!\n");
+        goto no_gpio_interrupt;
     }
 
     // Request interrupt
 
 
     rv = request_irq(gic_interrupt,
-                     (irq_handler_t) dma_int_handler,
+                     (irq_handler_t) gpio_int_handler,
                      IRQF_TRIGGER_RISING,
-                     "dma_interrupt",
+                     "gpio_interrupt",
                      NULL);
 
     if (rv) {
         printk("Can't get interrupt %d\n", gic_interrupt);
-        goto no_dma_interrupt;
+        goto no_gpio_interrupt;
     }
 
     printk(KERN_INFO
@@ -308,29 +308,29 @@ init_dma_int(void) {
 
     // remove the proc entry on error
 
-    no_dma_interrupt:
+    no_gpio_interrupt:
     free_irq(gic_interrupt, NULL);                   // Release IRQ
-    unregister_chrdev(DMA_MAJOR, MODULE_NM);       // Release character device
-    platform_driver_unregister(&zynq_dma_driver);
-    remove_proc_entry("dma_interrupt", NULL);
+    unregister_chrdev(GPIO_MAJOR, MODULE_NM);       // Release character device
+    platform_driver_unregister(&zynq_gpio_driver);
+    remove_proc_entry("gpio_interrupt", NULL);
     return -EBUSY;
 };
 
 /* -------------------------------------------------------------------
- * function: cleanup_dma_interrupt
+ * function: cleanup_gpio_interrupt
  *
  * This function frees interrupt then removes the /proc directory entry 
- * dma_interrupt.
+ * gpio_interrupt. 
  */
 
 static void __exit
 
-cleanup_dma_interrupt(void) {
+cleanup_gpio_interrupt(void) {
 
     free_irq(gic_interrupt, NULL);                   // Release IRQ
-    unregister_chrdev(DMA_MAJOR, MODULE_NM);       // Release character device
-    platform_driver_unregister(&zynq_dma_driver);  // Unregister the driver
-    remove_proc_entry("dma_interrupt", NULL);      // Remove process entry
+    unregister_chrdev(GPIO_MAJOR, MODULE_NM);       // Release character device
+    platform_driver_unregister(&zynq_gpio_driver);  // Unregister the driver
+    remove_proc_entry("gpio_interrupt", NULL);      // Remove process entry
     //kfree(msg);
     printk(KERN_INFO
     "%s %s removed\n", MODULE_NM, MODULE_VER);
@@ -345,10 +345,10 @@ cleanup_dma_interrupt(void) {
  */
 
 
-module_init(init_dma_int);
-module_exit(cleanup_dma_interrupt);
+module_init(init_gpio_int);
+module_exit(cleanup_gpio_interrupt);
 
 MODULE_AUTHOR("Mark McDermott");
-MODULE_DESCRIPTION("dma_interrupt proc module");
+MODULE_DESCRIPTION("gpio_interrupt proc module");
 MODULE_LICENSE("GPL");
 

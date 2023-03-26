@@ -1,0 +1,1 @@
+cmd_/home/ee382n/Adv_Embedded/lab3/Module.symvers := sed 's/\.ko$$/\.o/' /home/ee382n/Adv_Embedded/lab3/modules.order | scripts/mod/modpost    -o /home/ee382n/Adv_Embedded/lab3/Module.symvers -e -i Module.symvers   -T -

@@ -2,7 +2,7 @@
  * Duo Wang
  * dw28746
  * 3/3/2023
- * Derived from lab 1 test3.c
+ * Derived from dma_ocm_test.c
 */
 
 #include "dm.c"
@@ -54,25 +54,32 @@
 /* -------------------------------------------------------------------------------
  * Device path name for the dma device
  */
-#define DMA_DEV_PATH    "/dev/dma_int"
+#define GPIO_DEV_PATH    "/dev/gpio_int"
 
 // global variables
 int ps_range[] = {45, 30, 25};
 int pl_range[] = {5, 8, 15};
 int number = 2048 * 4;
 int loop_count;
-int clk_counts = 0;
 volatile int sigio_signal_count = 0;
+
 /* -------------------------------------------------------------------------------
  * File descriptor for dma device
  */
-int dma_dev_fd = -1;
+int gpio_dev_fd = -1;
+
 /* -------------------------------------------------------------------------------
- * Flag to indicate that a SIGIO signal has been processed
+ *      Flag to indicate that a SIGIO signal has been processed
  */
 static volatile sig_atomic_t sigio_signal_processed = 0;
 volatile int rc;
 sigset_t signal_mask, signal_mask_old, signal_mask_most;
+struct timeval start_timestamp;
+/* -------------------------------------------------------------------------------
+ *      Time stamp set in the last sigio_signal_handler() invocation:
+ */
+struct timeval sigio_signal_timestamp;
+
 
 /*************************** DMA_SET ************************************
 *
@@ -92,22 +99,29 @@ unsigned int dma_get(unsigned int *dma_virtual_address, int offset) {
 
 /***************************  CDMA_SYNC **********************************
 *
-* This function waits for the DMA to complete by suspending the process and waiting for a SIGIO interrupt asynchronously
+* This is polling loop that waits for the DMA to complete. Need to replace
+* with interrupt capability
 */
 
 void cdma_sync() {
-    //printf("inside cdma_sync\n");
     /* ---------------------------------------------------------------------
-     * Wait for SIGIO signal handler to be executed.
-     */
+ * Take a start timestamp for interrupt latency measurement
+ */
+    //printf("inside cdma\n");
+    pm(0xa0050004, 1, 2048 * 2);
+    (void) gettimeofday(&start_timestamp, NULL);
     if (sigio_signal_processed == 0) {
+
         rc = sigsuspend(&signal_mask_most);
+
         /* Confirm we are coming out of suspend mode correctly */
         assert(rc == -1 && errno == EINTR && sigio_signal_processed);
     }
-    // set signal_mask_old as our sigmask
     (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-    //printf("outside suspend\n");
+    // turn interrupt flag off before transfer, clear pin out
+    sigio_signal_processed = 0;
+    pm(0xa0050004, 0, 2048 * 2);
+    //printf("outside while\n");
 }
 
 /***************************  MEMDUMP ************************************
@@ -123,45 +137,6 @@ void memdump(void *virtual_address, int byte_count) {
     printf("\n");
 }
 
-/***************************  TRANSFER ************************************
-*
-*/
-
-void transfer(unsigned int *cdma_virtual_address, int length) {
-    clk_counts = 0;
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
-    // transfer FFFC to b002
-    dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
-    dma_set(cdma_virtual_address, SA, OCM);         // Write source address
-    // assert timer_enable
-    pm(0xa0050004, 2, 2048 * 2);
-    dma_set(cdma_virtual_address, BTT, length * 4);
-    // waits for interrupt form cdma
-    cdma_sync();
-    // store timer total counts
-    clk_counts += dm(0xa0050008, 2048 * 2) * 4;
-    // deassert timer_enable
-    pm(0xa0050004, 0, 2048 * 2);
-    // turn off the signal flag
-    sigio_signal_processed = 0;
-    dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
-    // transfer b002 to 2000
-    dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
-    dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
-    // assert timer_enable
-    pm(0xa0050004, 2, 2048 * 2);
-    dma_set(cdma_virtual_address, BTT, length * 4);
-    // waits for interrupt form cdma
-    cdma_sync();
-    // store timer total counts
-    clk_counts += dm(0xa0050008, 2048 * 2) * 4;
-    // deassert timer_enable
-    pm(0xa0050004, 0, 2048 * 2);
-    // turn off the signal flag
-    sigio_signal_processed = 0;
-    dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
-}
 
 /**************************************************************************
                                 MAIN
@@ -169,6 +144,7 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
 /* ---------------------------------------------------------------
 * sqrt routine
 */
+
 unsigned long int_sqrt(unsigned long n) {
     unsigned long root = 0;
     unsigned long bit;
@@ -230,7 +206,6 @@ void compute_interrupt_latency_stats(
     *average_latency_p = average;
     *std_deviation_p = std_deviation;
 }
-
 
 void clk_iterate(int ps_index, int pl_index) {
     // PS clk:
@@ -301,6 +276,10 @@ void sigio_signal_handler(int signo) {
      * Set global flag
      */
     sigio_signal_processed = 1;
+    /* -------------------------------------------------------------------------
+ * Take end timestamp for interrupt latency measurement
+ */
+    (void) gettimeofday(&sigio_signal_timestamp, NULL);
 }
 
 int main(int argc, char *argv[]) {
@@ -323,7 +302,7 @@ int main(int argc, char *argv[]) {
     int latency_2_1[loop_flag];
     int latency_2_2[loop_flag];
 
-    // interrupt setup
+    // interrupt part
     /* --------------------------------------------------------------------------
     *      Register signal handler for SIGIO signal:
     */
@@ -342,28 +321,30 @@ int main(int argc, char *argv[]) {
     /* -------------------------------------------------------------------------
      *      Open the device file
      */
-    dma_dev_fd = open(DMA_DEV_PATH, O_RDWR);
-    if (dma_dev_fd == -1) {
-        perror("open() of " DMA_DEV_PATH " failed");
+    gpio_dev_fd = open(GPIO_DEV_PATH, O_RDWR);
+    if (gpio_dev_fd == -1) {
+        perror("open() of " GPIO_DEV_PATH " failed");
         return -1;
     }
     /* -------------------------------------------------------------------------
      * Set our process to receive SIGIO signals from the dma device:
      */
-    rc = fcntl(dma_dev_fd, F_SETOWN, getpid());
+    rc = fcntl(gpio_dev_fd, F_SETOWN, getpid());
     if (rc == -1) {
         perror("fcntl() SETOWN failed\n");
         return -1;
     }
     /* -------------------------------------------------------------------------
-     * Enable reception of SIGIO signals for the dma_dev_fd descriptor
+     * Enable reception of SIGIO signals for the gpio_dev_fd descriptor
      */
-    int fd_flags = fcntl(dma_dev_fd, F_GETFL);
-    rc = fcntl(dma_dev_fd, F_SETFL, fd_flags | O_ASYNC);
+    int fd_flags = fcntl(gpio_dev_fd, F_GETFL);
+    rc = fcntl(gpio_dev_fd, F_SETFL, fd_flags | O_ASYNC);
     if (rc == -1) {
         perror("fcntl() SETFL failed\n");
         return -1;
     }
+    // clear interrupt_out pin
+    pm(0xa0050004, 0, 2048 * 2);
 
     // main loop
     while (loop_flag) {
@@ -377,91 +358,63 @@ int main(int argc, char *argv[]) {
                  * NOTE: This next section of code must be excuted each cycle to prevent
                  * a race condition between the SIGIO signal handler and sigsuspend()
                  */
-                (void) sigfillset(&signal_mask); // contain all sigs for sigmask
-                (void) sigfillset(&signal_mask_most); // contain all sigs for sigmost
-                (void) sigdelset(&signal_mask_most, SIGIO); // del SIGIO from sigmost -> sigmost missing SIGIO
-                (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old); // install signal_mask as signal set
+                (void) sigfillset(&signal_mask);
+                (void) sigfillset(&signal_mask_most);
+                (void) sigdelset(&signal_mask_most, SIGIO);
+                (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old);
 
-                // transfer data
-                // Open /dev/mem which represents the whole physical memory
-                int dh = open("/dev/mem", O_RDWR | O_SYNC);
-                if (dh == -1) {
-                    printf("Unable to open /dev/mem.  Ensure it exists (major=1, minor=1)\n");
-                    printf("Must be root to run this routine.\n");
-                    return -1;
-                }
-                // Memory map AXI Lite register block
-                uint32_t *cdma_virtual_address = mmap(NULL,
-                                                      8192,
-                                                      PROT_READ | PROT_WRITE,
-                                                      MAP_SHARED,
-                                                      dh,
-                                                      CDMA);
-                uint32_t *BRAM_virtual_address = mmap(NULL,
-                                                      8192,
-                                                      PROT_READ | PROT_WRITE,
-                                                      MAP_SHARED,
-                                                      dh,
-                                                      BRAM_PS);
-                uint32_t *ocm = mmap(NULL, 65536, PROT_READ | PROT_WRITE, MAP_SHARED, dh, OCM);
-                // printf("OCM virtual address = 0x%.8x\n", ocm);
-                // Setup data to be transferred
-                uint32_t c[2048] = {};
-                for (int i = 0; i < 2048; ++i) {
-                    c[i] = rand();
-                }
-                // Setup data in OCM to be transferred to the BRAM
-                for (int i = 0; i < 2048; i++)
-                    ocm[i] = c[i];
-                // RESET DMA
-                dma_set(cdma_virtual_address, CDMACR, 0x0004);
-                // generate random clocks
                 clk_iterate(ps_i, pl_i);
-                // transfer starts
-                // printf("Transfer starts...\n");
-                transfer(cdma_virtual_address, 2048);
+                cdma_sync();
                 if (ps_i == 0 && pl_i == 0) {
-                    latency_0_0[loop_flag] = clk_counts;
+                    latency_0_0[loop_flag] = (sigio_signal_timestamp.tv_sec -
+                                              start_timestamp.tv_sec) * 1000000 +
+                                             (sigio_signal_timestamp.tv_usec -
+                                              start_timestamp.tv_usec);
                 } else if (ps_i == 0 && pl_i == 1) {
-                    latency_0_1[loop_flag] = clk_counts;
+                    latency_0_1[loop_flag] = (sigio_signal_timestamp.tv_sec -
+                                              start_timestamp.tv_sec) * 1000000 +
+                                             (sigio_signal_timestamp.tv_usec -
+                                              start_timestamp.tv_usec);
                 } else if (ps_i == 0 && pl_i == 2) {
-                    latency_0_2[loop_flag] = clk_counts;
+                    latency_0_2[loop_flag] = (sigio_signal_timestamp.tv_sec -
+                                              start_timestamp.tv_sec) * 1000000 +
+                                             (sigio_signal_timestamp.tv_usec -
+                                              start_timestamp.tv_usec);
                 } else if (ps_i == 1 && pl_i == 0) {
-                    latency_1_0[loop_flag] = clk_counts;
+                    latency_1_0[loop_flag] = (sigio_signal_timestamp.tv_sec -
+                                              start_timestamp.tv_sec) * 1000000 +
+                                             (sigio_signal_timestamp.tv_usec -
+                                              start_timestamp.tv_usec);
                 } else if (ps_i == 1 && pl_i == 1) {
-                    latency_1_1[loop_flag] = clk_counts;
+                    latency_1_1[loop_flag] = (sigio_signal_timestamp.tv_sec -
+                                              start_timestamp.tv_sec) * 1000000 +
+                                             (sigio_signal_timestamp.tv_usec -
+                                              start_timestamp.tv_usec);
                 } else if (ps_i == 1 && pl_i == 2) {
-                    latency_1_2[loop_flag] = clk_counts;
+                    latency_1_2[loop_flag] = (sigio_signal_timestamp.tv_sec -
+                                              start_timestamp.tv_sec) * 1000000 +
+                                             (sigio_signal_timestamp.tv_usec -
+                                              start_timestamp.tv_usec);
                 } else if (ps_i == 2 && pl_i == 0) {
-                    latency_2_0[loop_flag] = clk_counts;
+                    latency_2_0[loop_flag] = (sigio_signal_timestamp.tv_sec -
+                                              start_timestamp.tv_sec) * 1000000 +
+                                             (sigio_signal_timestamp.tv_usec -
+                                              start_timestamp.tv_usec);
                 } else if (ps_i == 2 && pl_i == 1) {
-                    latency_2_1[loop_flag] = clk_counts;
+                    latency_2_1[loop_flag] = (sigio_signal_timestamp.tv_sec -
+                                              start_timestamp.tv_sec) * 1000000 +
+                                             (sigio_signal_timestamp.tv_usec -
+                                              start_timestamp.tv_usec);
                 } else if (ps_i == 2 && pl_i == 2) {
-                    latency_2_2[loop_flag] = clk_counts;
+                    latency_2_2[loop_flag] = (sigio_signal_timestamp.tv_sec -
+                                              start_timestamp.tv_sec) * 1000000 +
+                                             (sigio_signal_timestamp.tv_usec -
+                                              start_timestamp.tv_usec);
                 }
-                // check results
-                for (int i = 0; i < 2048; i++) {
-                    if (BRAM_virtual_address[i] != c[i]) {
-                        printf("RAM result: 0x%.8x and c result is 0x%.8x  element %d\n",
-                               BRAM_virtual_address[i], c[i], i);
-                        printf("test failed!!\n");
-                        munmap(ocm, 65536);
-                        munmap(cdma_virtual_address, 8192);
-                        munmap(BRAM_virtual_address, 8192);
-                        return -1;
-                    }
-                }
-                munmap(ocm, 65536);
-                munmap(cdma_virtual_address, 8192);
-                munmap(BRAM_virtual_address, 8192);
-                // calls shell script to compare results
-                system("./sha_comp.sh");
-                (void) close(dh);
             }
         }
-        //printf("%i ", loop_flag);
     }
-    (void) close(dma_dev_fd);
+    (void) close(gpio_dev_fd);
 
     /* -------------------------------------------------------------------------
  * Compute interrupt latency stats:
