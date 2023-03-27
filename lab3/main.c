@@ -133,11 +133,11 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     pm(0xa0080014, length, 2048 * 2);
     // Enable interrupts
     dma_set(cdma_virtual_address, CDMACR, 0x1000);
+    // Assert timer_enable
+    pm(0xa0050004, 2, 2048 * 2);
     // Assert Keccak unit
     pm(0xa0080000, 1, 2048 * 2);
     pm(0xa0080000, 0, 2048 * 2);
-    // Assert timer_enable
-    pm(0xa0050004, 2, 2048 * 2);
     // waits for interrupt form cdma
     cdma_sync();
     // deassert timer_enable
@@ -292,7 +292,7 @@ void sigio_signal_handler(int signo) {
 int main(int argc, char *argv[]) {
     int count = 0;
     int loop_flag = 1;
-    int byte_hashed = 8;
+    int byte_hashed;
     if (argc == 3) {
         count = strtoul(argv[1], 0, 0);
         loop_flag = count;
@@ -359,6 +359,7 @@ int main(int argc, char *argv[]) {
             count -= 1;
             loop_flag -= 1;
         }
+        byte_hashed = 8;
         for (int i = 0; i < 10; ++i) {
 
             /* ---------------------------------------------------------------------
