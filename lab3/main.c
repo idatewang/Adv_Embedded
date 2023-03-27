@@ -140,10 +140,10 @@ void transfer(unsigned int *cdma_virtual_address, int length) {
     pm(0xa0080000, 0, 2048 * 2);
     // waits for interrupt form cdma
     cdma_sync();
-    // deassert timer_enable
-    pm(0xa0050004, 0, 2048 * 2);
     // store timer total counts
     clk_counts += dm(0xa005000c, 2048 * 2);
+    // deassert timer_enable
+    pm(0xa0050004, 0, 2048 * 2);
     // turn off the signal flag
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
