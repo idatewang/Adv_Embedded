@@ -187,7 +187,7 @@ struct proc_ops proc_fops = {
 
 
 static const struct of_device_id zynq_gpio_of_match[] = {
-        {.compatible = "xlnx,ctmr-intout"},
+        {.compatible = "xlnx,sha3"},
         { /* end of table */ }
 };
 
