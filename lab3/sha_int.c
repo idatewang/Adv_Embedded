@@ -44,7 +44,7 @@
 
 #define GPIO_MAJOR 235    // Need to mknod /dev/gpio_int c 237 0
 
-#define MODULE_NM "gpio_interrupt"
+#define MODULE_NM "sha_interrupt"
 
 #undef DEBUG
 //#define DEBUG
@@ -293,7 +293,7 @@ init_gpio_int(void) {
     rv = request_irq(gic_interrupt,
                      (irq_handler_t) gpio_int_handler,
                      IRQF_TRIGGER_RISING,
-                     "gpio_interrupt",
+                     "sha_interrupt",
                      NULL);
 
     if (rv) {

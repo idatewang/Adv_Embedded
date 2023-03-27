@@ -54,7 +54,7 @@
 /* -------------------------------------------------------------------------------
  * Device path name for the dma device
  */
-#define GPIO_DEV_PATH    "/dev/gpio_int"
+#define SHA_DEV_PATH    "/dev/sha_interrupt"
 
 // global variables
 int ps_range[] = {45, 30, 25};
@@ -66,7 +66,7 @@ volatile int sigio_signal_count = 0;
 /* -------------------------------------------------------------------------------
  * File descriptor for dma device
  */
-int gpio_dev_fd = -1;
+int sha_dev_fd = -1;
 /* -------------------------------------------------------------------------------
  * Flag to indicate that a SIGIO signal has been processed
  */
@@ -328,24 +328,24 @@ int main(int argc, char *argv[]) {
     /* -------------------------------------------------------------------------
      *      Open the device file
      */
-    gpio_dev_fd = open(GPIO_DEV_PATH, O_RDWR);
-    if (gpio_dev_fd == -1) {
-        perror("open() of " GPIO_DEV_PATH " failed");
+    sha_dev_fd = open(SHA_DEV_PATH, O_RDWR);
+    if (sha_dev_fd == -1) {
+        perror("open() of " SHA_DEV_PATH " failed");
         return -1;
     }
     /* -------------------------------------------------------------------------
      * Set our process to receive SIGIO signals from the dma device:
      */
-    rc = fcntl(gpio_dev_fd, F_SETOWN, getpid());
+    rc = fcntl(sha_dev_fd, F_SETOWN, getpid());
     if (rc == -1) {
         perror("fcntl() SETOWN failed\n");
         return -1;
     }
     /* -------------------------------------------------------------------------
-     * Enable reception of SIGIO signals for the gpio_dev_fd descriptor
+     * Enable reception of SIGIO signals for the sha_dev_fd descriptor
      */
-    int fd_flags = fcntl(gpio_dev_fd, F_GETFL);
-    rc = fcntl(gpio_dev_fd, F_SETFL, fd_flags | O_ASYNC);
+    int fd_flags = fcntl(sha_dev_fd, F_GETFL);
+    rc = fcntl(sha_dev_fd, F_SETFL, fd_flags | O_ASYNC);
     if (rc == -1) {
         perror("fcntl() SETFL failed\n");
         return -1;
@@ -451,7 +451,7 @@ int main(int argc, char *argv[]) {
         }
         //printf("%i ", loop_flag);
     }
-    (void) close(gpio_dev_fd);
+    (void) close(sha_dev_fd);
 
     /* -------------------------------------------------------------------------
  * Compute interrupt latency stats:
