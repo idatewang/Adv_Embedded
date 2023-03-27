@@ -1,8 +1,8 @@
 #!/bin/sh
 
-rm /dev/sha_interrupt
-/bin/mknod /dev/sha_interrupt c 235 0
+rm /dev/sha_int
+/bin/mknod /dev/sha_int c 235 0
 sync
-/sbin/rmmod sha_interrupt
-/sbin/insmod sha_interrupt.ko
+/sbin/rmmod sha_int
+/sbin/insmod sha_int.ko
 

@@ -54,7 +54,7 @@
 /* -------------------------------------------------------------------------------
  * Device path name for the dma device
  */
-#define SHA_DEV_PATH    "/dev/sha_interrupt"
+#define SHA_DEV_PATH    "/dev/sha_int"
 
 // global variables
 int ps_range[] = {45, 30, 25};
@@ -357,8 +357,8 @@ int main(int argc, char *argv[]) {
             count -= 1;
             loop_flag -= 1;
         }
-        for (int ps_i = 0; ps_i < 3; ++ps_i) {
-            for (int pl_i = 0; pl_i < 3; ++pl_i) {
+        for (int ps_i = 0; ps_i < 1; ++ps_i) {
+            for (int pl_i = 0; pl_i < 1; ++pl_i) {
                 /* ---------------------------------------------------------------------
                  * NOTE: This next section of code must be excuted each cycle to prevent
                  * a race condition between the SIGIO signal handler and sigsuspend()
