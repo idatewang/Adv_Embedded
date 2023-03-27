@@ -27,12 +27,12 @@ PWD   := $(shell pwd)
 
 default:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
-	$(CC)  test2.c -o test2.exe
-	$(CC)  test2.c -g -o test2_gdb
+	$(CC)  test1.c -o test1.exe
+	$(CC)  test1.c -g -o test1_gdb
 #	$(CC)  dma_latency_csv.c -o dma_latency_csv
 
 clean::
 	$(RM) .skeleton* *.cmd *.o *.ko *.mod.c *.exe
-	$(RM) test2_gdb
+	$(RM) test1_gdb
 	$(RM) -R .tmp*
 

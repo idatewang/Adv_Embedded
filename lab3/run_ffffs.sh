@@ -45,15 +45,11 @@ echo "---------------------------"
 # Check 16 bytes
 /usr/bin/pm 0xA0080014 16 > /dev/null
 echo "---------------------------"
+echo "Start Keccak Unit"
+
 /usr/bin/pm 0xA0080000 0x01 > /dev/null
 /usr/bin/pm 0xA0080000 0x00 > /dev/null
 
-# Start Cap timer
-/usr/bin/pm 0xa0050004 0x2 > /dev/null
-
-echo "Start timer and Keccak Unit"
-
-/usr/bin/pm 0xA0050004 0x1 > /dev/null
 
 echo "---------------------------"
 echo "Expected results: 

@@ -96,7 +96,7 @@ unsigned int dma_get(unsigned int *dma_virtual_address, int offset) {
 */
 
 void cdma_sync() {
-    //printf("inside cdma_sync\n");
+    printf("inside cdma_sync\n");
     /* ---------------------------------------------------------------------
      * Wait for SIGIO signal handler to be executed.
      */
@@ -107,7 +107,7 @@ void cdma_sync() {
     }
     // set signal_mask_old as our sigmask
     (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-    //printf("outside suspend\n");
+    printf("outside suspend\n");
 }
 
 /***************************  MEMDUMP ************************************
@@ -129,29 +129,15 @@ void memdump(void *virtual_address, int byte_count) {
 
 void transfer(unsigned int *cdma_virtual_address, int length) {
     clk_counts = 0;
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
-    // transfer FFFC to b002
-    dma_set(cdma_virtual_address, DA, BRAM_CDMA);   // Write destination address
-    dma_set(cdma_virtual_address, SA, OCM);         // Write source address
-    // assert timer_enable
+    // Set bytes to check
+    pm(0xa0080014,length,2048*2);
+    // Enable interrupts
+    dma_set(cdma_virtual_address, CDMACR, 0x1000);
+    // Assert timer_enable
     pm(0xa0050004, 2, 2048 * 2);
-    dma_set(cdma_virtual_address, BTT, length * 4);
-    // waits for interrupt form cdma
-    cdma_sync();
-    // store timer total counts
-    clk_counts += dm(0xa0050008, 2048 * 2) * 4;
-    // deassert timer_enable
-    pm(0xa0050004, 0, 2048 * 2);
-    // turn off the signal flag
-    sigio_signal_processed = 0;
-    dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
-    dma_set(cdma_virtual_address, CDMACR, 0x1000);  // Enable interrupts
-    // transfer b002 to 2000
-    dma_set(cdma_virtual_address, DA, OCM + 0x2000);   // Write destination address
-    dma_set(cdma_virtual_address, SA, BRAM_CDMA);         // Write source address
-    // assert timer_enable
-    pm(0xa0050004, 2, 2048 * 2);
-    dma_set(cdma_virtual_address, BTT, length * 4);
+    // Assert Keccak unit
+    pm(0xa0080000,1,2048*2);
+    pm(0xa0080000,0,2048*2);
     // waits for interrupt form cdma
     cdma_sync();
     // store timer total counts
@@ -296,7 +282,7 @@ void clk_iterate(int ps_index, int pl_index) {
 void sigio_signal_handler(int signo) {
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
-    //printf("sigio_signal_handler called (signo=%d)\n", signo);
+    printf("sigio_signal_handler called (signo=%d)\n", signo);
     /* -------------------------------------------------------------------------
      * Set global flag
      */
@@ -419,7 +405,11 @@ int main(int argc, char *argv[]) {
                 clk_iterate(ps_i, pl_i);
                 // transfer starts
                 // printf("Transfer starts...\n");
-                transfer(cdma_virtual_address, 2048);
+                // Reset Keccak Unit
+                pm(0xa0080000,0x2,2048*2);
+                pm(0xa0080000,0x0,2048*2);
+                // Send how many bytes to check
+                transfer(cdma_virtual_address, 16);
                 if (ps_i == 0 && pl_i == 0) {
                     latency_0_0[loop_flag] = clk_counts;
                 } else if (ps_i == 0 && pl_i == 1) {
@@ -440,22 +430,22 @@ int main(int argc, char *argv[]) {
                     latency_2_2[loop_flag] = clk_counts;
                 }
                 // check results
-                for (int i = 0; i < 2048; i++) {
-                    if (BRAM_virtual_address[i] != c[i]) {
-                        printf("RAM result: 0x%.8x and c result is 0x%.8x  element %d\n",
-                               BRAM_virtual_address[i], c[i], i);
-                        printf("test failed!!\n");
-                        munmap(ocm, 65536);
-                        munmap(cdma_virtual_address, 8192);
-                        munmap(BRAM_virtual_address, 8192);
-                        return -1;
-                    }
-                }
+//                for (int i = 0; i < 2048; i++) {
+//                    if (BRAM_virtual_address[i] != c[i]) {
+//                        printf("RAM result: 0x%.8x and c result is 0x%.8x  element %d\n",
+//                               BRAM_virtual_address[i], c[i], i);
+//                        printf("test failed!!\n");
+//                        munmap(ocm, 65536);
+//                        munmap(cdma_virtual_address, 8192);
+//                        munmap(BRAM_virtual_address, 8192);
+//                        return -1;
+//                    }
+//                }
                 munmap(ocm, 65536);
                 munmap(cdma_virtual_address, 8192);
                 munmap(BRAM_virtual_address, 8192);
                 // calls shell script to compare results
-                system("./sha_comp.sh");
+//                system("./sha_comp.sh");
                 (void) close(dh);
             }
         }
