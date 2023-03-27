@@ -96,7 +96,7 @@ unsigned int dma_get(unsigned int *dma_virtual_address, int offset) {
 */
 
 void cdma_sync() {
-    printf("inside cdma_sync\n");
+   // printf("inside cdma_sync\n");
     /* ---------------------------------------------------------------------
      * Wait for SIGIO signal handler to be executed.
      */
@@ -107,7 +107,7 @@ void cdma_sync() {
     }
     // set signal_mask_old as our sigmask
     (void) sigprocmask(SIG_SETMASK, &signal_mask_old, NULL);
-    printf("outside suspend\n");
+   // printf("outside suspend\n");
 }
 
 /***************************  MEMDUMP ************************************
@@ -130,20 +130,20 @@ void memdump(void *virtual_address, int byte_count) {
 void transfer(unsigned int *cdma_virtual_address, int length) {
     clk_counts = 0;
     // Set bytes to check
-    pm(0xa0080014,length,2048*2);
+    pm(0xa0080014, length, 2048 * 2);
     // Enable interrupts
     dma_set(cdma_virtual_address, CDMACR, 0x1000);
+    // Assert Keccak unit
+    pm(0xa0080000, 1, 2048 * 2);
+    pm(0xa0080000, 0, 2048 * 2);
     // Assert timer_enable
     pm(0xa0050004, 2, 2048 * 2);
-    // Assert Keccak unit
-    pm(0xa0080000,1,2048*2);
-    pm(0xa0080000,0,2048*2);
     // waits for interrupt form cdma
     cdma_sync();
-    // store timer total counts
-    clk_counts += dm(0xa005000c, 2048 * 2) * 4;
     // deassert timer_enable
     pm(0xa0050004, 0, 2048 * 2);
+    // store timer total counts
+    clk_counts += dm(0xa005000c, 2048 * 2);
     // turn off the signal flag
     sigio_signal_processed = 0;
     dma_set(cdma_virtual_address, CDMACR, 0x0000);  // Disable interrupts
@@ -282,7 +282,7 @@ void clk_iterate(int ps_index, int pl_index) {
 void sigio_signal_handler(int signo) {
     assert(signo == SIGIO);   // Confirm correct signal #
     sigio_signal_count++;
-    printf("sigio_signal_handler called (signo=%d)\n", signo);
+    //printf("sigio_signal_handler called (signo=%d)\n", signo);
     /* -------------------------------------------------------------------------
      * Set global flag
      */
@@ -292,23 +292,24 @@ void sigio_signal_handler(int signo) {
 int main(int argc, char *argv[]) {
     int count = 0;
     int loop_flag = 1;
+    int byte_hashed = 8;
     if (argc == 3) {
         count = strtoul(argv[1], 0, 0);
         loop_flag = count;
         loop_count = loop_flag;
         number = strtoul(argv[2], 0, 0) * 4;
     }
-    srand(time(0));         // Seed the random number generator
-    int latency_0_0[loop_flag];
-    int latency_0_1[loop_flag];
-    int latency_0_2[loop_flag];
-    int latency_1_0[loop_flag];
-    int latency_1_1[loop_flag];
-    int latency_1_2[loop_flag];
-    int latency_2_0[loop_flag];
-    int latency_2_1[loop_flag];
-    int latency_2_2[loop_flag];
-
+    //srand(time(0));         // Seed the random number generator
+    int latency_8[loop_flag];
+    int latency_16[loop_flag];
+    int latency_32[loop_flag];
+    int latency_64[loop_flag];
+    int latency_128[loop_flag];
+    int latency_256[loop_flag];
+    int latency_512[loop_flag];
+    int latency_1024[loop_flag];
+    int latency_2048[loop_flag];
+    int latency_4096[loop_flag];
     // interrupt setup
     /* --------------------------------------------------------------------------
     *      Register signal handler for SIGIO signal:
@@ -350,70 +351,87 @@ int main(int argc, char *argv[]) {
         perror("fcntl() SETFL failed\n");
         return -1;
     }
-
+    // set max clock rate
+    clk_iterate(0, 0);
     // main loop
     while (loop_flag) {
         if (count > 0) {
             count -= 1;
             loop_flag -= 1;
         }
-        for (int ps_i = 0; ps_i < 1; ++ps_i) {
-            for (int pl_i = 0; pl_i < 1; ++pl_i) {
-                /* ---------------------------------------------------------------------
-                 * NOTE: This next section of code must be excuted each cycle to prevent
-                 * a race condition between the SIGIO signal handler and sigsuspend()
-                 */
-                (void) sigfillset(&signal_mask); // contain all sigs for sigmask
-                (void) sigfillset(&signal_mask_most); // contain all sigs for sigmost
-                (void) sigdelset(&signal_mask_most, SIGIO); // del SIGIO from sigmost -> sigmost missing SIGIO
-                (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old); // install signal_mask as signal set
+        for (int i = 0; i < 10; ++i) {
 
-                // transfer data
-                // Open /dev/mem which represents the whole physical memory
-                int dh = open("/dev/mem", O_RDWR | O_SYNC);
-                if (dh == -1) {
-                    printf("Unable to open /dev/mem.  Ensure it exists (major=1, minor=1)\n");
-                    printf("Must be root to run this routine.\n");
-                    return -1;
-                }
-                // Memory map AXI Lite register block
-                uint32_t *cdma_virtual_address = mmap(NULL,
-                                                      8192,
-                                                      PROT_READ | PROT_WRITE,
-                                                      MAP_SHARED,
-                                                      dh,
-                                                      CDMA);
-                uint32_t *BRAM_virtual_address = mmap(NULL,
-                                                      8192,
-                                                      PROT_READ | PROT_WRITE,
-                                                      MAP_SHARED,
-                                                      dh,
-                                                      BRAM_PS);
-                uint32_t *ocm = mmap(NULL, 65536, PROT_READ | PROT_WRITE, MAP_SHARED, dh, OCM);
-                // printf("OCM virtual address = 0x%.8x\n", ocm);
-                // Setup data to be transferred
-                uint32_t c[2048] = {};
-                for (int i = 0; i < 2048; ++i) {
-                    c[i] = rand();
-                }
-                // Setup data in OCM to be transferred to the BRAM
-                for (int i = 0; i < 2048; i++)
-                    ocm[i] = c[i];
-                // RESET DMA
-                dma_set(cdma_virtual_address, CDMACR, 0x0004);
-                // generate random clocks
-                clk_iterate(ps_i, pl_i);
-                // transfer starts
-                // printf("Transfer starts...\n");
-                // Reset Keccak Unit
-                pm(0xa0080000,0x2,2048*2);
-                pm(0xa0080000,0x0,2048*2);
-                // Send how many bytes to check
-                transfer(cdma_virtual_address, 16);
-                if (ps_i == 0 && pl_i == 0) {
-                    latency_0_0[loop_flag] = clk_counts;
-                }
-                // check results
+            /* ---------------------------------------------------------------------
+             * NOTE: This next section of code must be excuted each cycle to prevent
+             * a race condition between the SIGIO signal handler and sigsuspend()
+             */
+            (void) sigfillset(&signal_mask); // contain all sigs for sigmask
+            (void) sigfillset(&signal_mask_most); // contain all sigs for sigmost
+            (void) sigdelset(&signal_mask_most, SIGIO); // del SIGIO from sigmost -> sigmost missing SIGIO
+            (void) sigprocmask(SIG_SETMASK, &signal_mask, &signal_mask_old); // install signal_mask as signal set
+
+            // transfer data
+            // Open /dev/mem which represents the whole physical memory
+            int dh = open("/dev/mem", O_RDWR | O_SYNC);
+            if (dh == -1) {
+                printf("Unable to open /dev/mem.  Ensure it exists (major=1, minor=1)\n");
+                printf("Must be root to run this routine.\n");
+                return -1;
+            }
+            // Memory map AXI Lite register block
+            uint32_t *cdma_virtual_address = mmap(NULL,
+                                                  8192,
+                                                  PROT_READ | PROT_WRITE,
+                                                  MAP_SHARED,
+                                                  dh,
+                                                  CDMA);
+            uint32_t *BRAM_virtual_address = mmap(NULL,
+                                                  8192,
+                                                  PROT_READ | PROT_WRITE,
+                                                  MAP_SHARED,
+                                                  dh,
+                                                  BRAM_PS);
+            uint32_t *ocm = mmap(NULL, 65536, PROT_READ | PROT_WRITE, MAP_SHARED, dh, OCM);
+            // printf("OCM virtual address = 0x%.8x\n", ocm);
+            // Setup data to be transferred
+//                uint32_t c[2048] = {};
+//                for (int i = 0; i < 2048; ++i) {
+//                    c[i] = rand();
+//                }
+            // Setup data in OCM to be transferred to the BRAM
+//                for (int i = 0; i < 2048; i++)
+//                    ocm[i] = c[i];
+            // RESET DMA
+            dma_set(cdma_virtual_address, CDMACR, 0x0004);
+            // transfer starts
+            // printf("Transfer starts...\n");
+            // Reset Keccak Unit
+            pm(0xa0080000, 0x2, 2048 * 2);
+            pm(0xa0080000, 0x0, 2048 * 2);
+            // Send how many bytes to check
+            transfer(cdma_virtual_address, byte_hashed);
+            if (i == 0) {
+                latency_8[loop_flag] = clk_counts;
+            } else if (i == 1) {
+                latency_16[loop_flag] = clk_counts;
+            } else if (i == 2) {
+                latency_32[loop_flag] = clk_counts;
+            } else if (i == 3) {
+                latency_64[loop_flag] = clk_counts;
+            } else if (i == 4) {
+                latency_128[loop_flag] = clk_counts;
+            } else if (i == 5) {
+                latency_256[loop_flag] = clk_counts;
+            } else if (i == 6) {
+                latency_512[loop_flag] = clk_counts;
+            } else if (i == 7) {
+                latency_1024[loop_flag] = clk_counts;
+            } else if (i == 8) {
+                latency_2048[loop_flag] = clk_counts;
+            } else if (i == 9) {
+                latency_4096[loop_flag] = clk_counts;
+            }
+            // check results
 //                for (int i = 0; i < 2048; i++) {
 //                    if (BRAM_virtual_address[i] != c[i]) {
 //                        printf("RAM result: 0x%.8x and c result is 0x%.8x  element %d\n",
@@ -425,13 +443,13 @@ int main(int argc, char *argv[]) {
 //                        return -1;
 //                    }
 //                }
-                munmap(ocm, 65536);
-                munmap(cdma_virtual_address, 8192);
-                munmap(BRAM_virtual_address, 8192);
-                // calls shell script to compare results
+            munmap(ocm, 65536);
+            munmap(cdma_virtual_address, 8192);
+            munmap(BRAM_virtual_address, 8192);
+            // calls shell script to compare results
 //                system("./sha_comp.sh");
-                (void) close(dh);
-            }
+            (void) close(dh);
+            byte_hashed *= 2;
         }
         //printf("%i ", loop_flag);
     }
@@ -449,11 +467,11 @@ int main(int argc, char *argv[]) {
             &max_latency,
             &average_latency,
             &std_deviation,
-            latency_0_0);
+            latency_8);
     /*
      * Print interrupt latency stats:
      */
-    printf("1499 300\n");
+    printf("8 bytes\n");
     printf("Minimum Latency:    %lu\n"
            "Maximum Latency:    %lu\n"
            "Average Latency:    %f\n"
@@ -467,6 +485,212 @@ int main(int argc, char *argv[]) {
            loop_count,
            sigio_signal_count);
 
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_16);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("16 bytes\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count,
+           sigio_signal_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_32);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("32 bytes\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count,
+           sigio_signal_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_64);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("64 bytes\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count,
+           sigio_signal_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_128);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("128 bytes\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count,
+           sigio_signal_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_256);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("256 bytes\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count,
+           sigio_signal_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_512);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("512 bytes\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count,
+           sigio_signal_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_1024);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("1024 bytes\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count,
+           sigio_signal_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_2048);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("2048 bytes\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count,
+           sigio_signal_count);
+
+    compute_interrupt_latency_stats(
+            &min_latency,
+            &max_latency,
+            &average_latency,
+            &std_deviation,
+            latency_4096);
+    /*
+     * Print interrupt latency stats:
+     */
+    printf("4096 bytes\n");
+    printf("Minimum Latency:    %lu\n"
+           "Maximum Latency:    %lu\n"
+           "Average Latency:    %f\n"
+           "Standard Deviation: %f\n"
+           "Number of samples:  %d\n"
+           "Number of interrupts: %d\n",
+           min_latency,
+           max_latency,
+           average_latency,
+           std_deviation,
+           loop_count,
+           sigio_signal_count);
 
     return 0;
 }
